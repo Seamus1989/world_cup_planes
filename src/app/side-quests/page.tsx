@@ -5,6 +5,7 @@ import { db, schema } from "@/db";
 import { HOUSE_USER } from "@/lib/draw";
 import { SiteNav } from "@/components/SiteNav";
 import { setChampionPick } from "./actions";
+import { PickForm } from "./PickForm";
 
 export const dynamic = "force-dynamic";
 
@@ -67,36 +68,21 @@ export default async function PrizesPage() {
             </span>
           </div>
 
-          <form
-            action={setChampionPick}
-            className="flex flex-wrap items-center gap-2 border-b border-hairline px-4 py-4"
-          >
-            <span className="font-board text-[11px] uppercase tracking-widest text-ink-dim">Your call</span>
-            <select
-              name="team"
-              defaultValue={me.championPick ?? ""}
-              className="rounded border border-hairline bg-board-raised px-2 py-1.5 text-sm text-ink"
-            >
-              <option value="">— pick a team —</option>
-              {teamsByName.map((t) => (
-                <option key={t.code} value={t.code}>
-                  {t.flagEmoji} {t.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              className="rounded-md bg-amber px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-tarmac transition hover:brightness-110"
-            >
-              Call it
-            </button>
-            {myPick && (
-              <span className="font-board text-[11px] uppercase tracking-wider text-ink-dim">
-                Backing {myPick.flagEmoji} {myPick.name}
-                {myPick.eliminated && <span className="text-cancelled"> · busted</span>}
+          {me.championPick ? (
+            <div className="flex flex-wrap items-center gap-2 border-b border-hairline px-4 py-4">
+              <span className="font-board text-[11px] uppercase tracking-widest text-ink-dim">Your call</span>
+              <span className="font-display text-sm font-semibold text-ink">
+                {myPick?.flagEmoji} {myPick?.name ?? me.championPick}
+                {myPick?.eliminated && <span className="text-cancelled"> · busted</span>}
               </span>
-            )}
-          </form>
+              <span className="font-board text-[10px] uppercase tracking-widest text-amber">🔒 Locked in</span>
+            </div>
+          ) : (
+            <PickForm
+              action={setChampionPick}
+              teams={teamsByName.map((t) => ({ code: t.code, name: t.name, flag: t.flagEmoji ?? "" }))}
+            />
+          )}
 
           {board.length === 0 ? (
             <p className="px-4 py-4 font-board text-[11px] uppercase tracking-widest text-ink-dim">
