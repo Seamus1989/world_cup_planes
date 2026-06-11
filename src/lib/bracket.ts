@@ -72,8 +72,7 @@ export async function getBracket(): Promise<{ stage: string; matches: BracketMat
     db
       .select({ teamId: seats.teamId, owner: users.name })
       .from(seats)
-      .innerJoin(users, eq(users.id, seats.userId))
-      .where(eq(seats.type, "PRIMARY")),
+      .innerJoin(users, eq(users.id, seats.userId)),
   ]);
 
   const ownerByTeam = new Map(ownerRows.map((r) => [r.teamId, r.owner]));

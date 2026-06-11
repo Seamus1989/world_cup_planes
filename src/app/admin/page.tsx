@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { asc } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireAdmin } from "@/lib/session";
-import { setUserStatus, runDrawAction, grantExtraSeat } from "./actions";
+import { setUserStatus, runDrawAction, grantExtraSeat, previewTannoy, postTannoy } from "./actions";
 import { DrawForm } from "./DrawForm";
+import { TannoyConsole } from "./TannoyConsole";
 import { HOUSE_USER } from "@/lib/draw";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,13 @@ export default async function AdminPage() {
   const houseSeatCount = houseUser ? seatRows.filter((s) => s.userId === houseUser.id).length : 0;
   const teamCount = (await db.select().from(schema.teams)).length;
   const spareTeams = houseSeatCount + (teamCount - new Set(seatRows.map((s) => s.teamId)).size);
+  const unannounced = (
+    await db
+      .select({ id: schema.matches.id })
+      .from(schema.matches)
+      .where(and(eq(schema.matches.status, "FINISHED"), isNull(schema.matches.announcedAt)))
+  ).length;
+  const slackLive = process.env.WILL_POST_TO_SLACK === "true" && !!process.env.SLACK_WEBHOOK_URL;
 
   const tiles = [
     { href: "/admin/matches", label: "Score console", desc: "Enter results + auto-fill from a report URL" },
@@ -197,6 +205,8 @@ export default async function AdminPage() {
             )}
           </div>
         </section>
+
+        <TannoyConsole pending={unannounced} live={slackLive} preview={previewTannoy} post={postTannoy} />
 
         <section className="mt-8 grid gap-3 sm:grid-cols-3">
           {tiles.map((t) => (

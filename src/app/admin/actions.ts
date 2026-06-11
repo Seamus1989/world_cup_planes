@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireAdmin } from "@/lib/session";
 import { commitPrimaryDraw, openStandbyAndDraw, HOUSE_USER } from "@/lib/draw";
+import { getTannoyContext, generateTannoyMessage, postToSlack, markAnnounced } from "@/lib/tannoy";
 
 export async function setUserStatus(userId: string, status: "ACTIVE" | "PENDING" | "DECLINED") {
   await requireAdmin();
@@ -49,4 +50,23 @@ export async function grantExtraSeat(formData: FormData) {
     await db.insert(schema.seats).values({ userId, teamId: free.id, type: "STANDBY", stakePennies: pricePennies, multiplier: 1 });
   }
   for (const p of ["/admin", "/squads", "/lounge", "/group-stage", "/fixtures"]) revalidatePath(p);
+}
+
+/** The Tannoy: draft a banter message for all finished-but-unannounced results. Does NOT post. */
+export async function previewTannoy() {
+  await requireAdmin();
+  const ctx = await getTannoyContext();
+  const text = await generateTannoyMessage(ctx);
+  return { text, matchIds: ctx.matchIds, count: ctx.games.length };
+}
+
+/** Post the (possibly edited) message to Slack, then mark those results announced. */
+export async function postTannoy(text: string, matchIds: string[]) {
+  await requireAdmin();
+  const slack = await postToSlack(text);
+  if (slack.ok) {
+    await markAnnounced(matchIds);
+    revalidatePath("/admin");
+  }
+  return slack;
 }

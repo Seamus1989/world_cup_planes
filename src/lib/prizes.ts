@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, ensureSchema, schema } from "@/db";
 
-const { matchEvents, players, teams, seats, users } = schema;
+const { matches, matchEvents, players, teams, seats, users } = schema;
 
 export type PrizeRow = {
   player: string;
@@ -36,8 +36,7 @@ export async function getPrizes(): Promise<Prizes> {
     db
       .select({ teamId: seats.teamId, owner: users.name })
       .from(seats)
-      .innerJoin(users, eq(users.id, seats.userId))
-      .where(eq(seats.type, "PRIMARY")),
+      .innerJoin(users, eq(users.id, seats.userId)),
   ]);
 
   const playerById = new Map(allPlayers.map((p) => [p.id, p]));
@@ -97,5 +96,56 @@ export async function getPrizes(): Promise<Prizes> {
       .map((s) => row(s.name, s.teamId, s.pens))
       .sort((a, b) => b.value - a.value)
       .slice(0, 6),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Prize money — the pot split. Edit to taste; shown in the UI.        */
+/* ------------------------------------------------------------------ */
+
+export const PRIZES = {
+  champion: 50,
+  runnerUp: 20,
+  third: 10,
+  fourth: 5,
+  goldenBoot: 15,
+  playmaker: 10,
+  penaltyKing: 10,
+} as const;
+
+export const PRIZE_TOTAL = Object.values(PRIZES).reduce((a, b) => a + b, 0); // £120
+
+export type Finisher = { team: string; flag: string; owner: string | null } | null;
+
+/** Champion / runner-up / 3rd / 4th owners, from the Final + 3rd-place play-off (once played). */
+export async function getMainPrizes(): Promise<{
+  champion: Finisher;
+  runnerUp: Finisher;
+  third: Finisher;
+  fourth: Finisher;
+}> {
+  await ensureSchema();
+  const [finalRows, thirdRows, allTeams, ownerRows] = await Promise.all([
+    db.select().from(matches).where(eq(matches.stage, "FINAL")).limit(1),
+    db.select().from(matches).where(eq(matches.stage, "THIRD")).limit(1),
+    db.select().from(teams),
+    db.select({ teamId: seats.teamId, owner: users.name }).from(seats).innerJoin(users, eq(users.id, seats.userId)),
+  ]);
+  const teamById = new Map(allTeams.map((t) => [t.id, t]));
+  const ownerByTeam = new Map(ownerRows.map((r) => [r.teamId, r.owner]));
+  const slot = (teamId: string | null | undefined): Finisher => {
+    if (!teamId) return null;
+    const t = teamById.get(teamId);
+    return t ? { team: t.name, flag: t.flagEmoji ?? "", owner: ownerByTeam.get(teamId) ?? null } : null;
+  };
+  const done = (m?: typeof matches.$inferSelect) =>
+    m && m.status === "FINISHED" && m.winnerTeamId ? m : null;
+  const f = done(finalRows[0]);
+  const t = done(thirdRows[0]);
+  return {
+    champion: f ? slot(f.winnerTeamId) : null,
+    runnerUp: f ? slot(f.winnerTeamId === f.homeTeamId ? f.awayTeamId : f.homeTeamId) : null,
+    third: t ? slot(t.winnerTeamId) : null,
+    fourth: t ? slot(t.winnerTeamId === t.homeTeamId ? t.awayTeamId : t.homeTeamId) : null,
   };
 }

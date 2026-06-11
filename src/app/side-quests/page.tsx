@@ -1,5 +1,12 @@
 import { eq } from "drizzle-orm";
-import { getPrizes, type PrizeRow } from "@/lib/prizes";
+import {
+  getPrizes,
+  getMainPrizes,
+  PRIZES,
+  PRIZE_TOTAL,
+  type PrizeRow,
+  type Finisher,
+} from "@/lib/prizes";
 import { requireActive } from "@/lib/session";
 import { db, schema } from "@/db";
 import { HOUSE_USER } from "@/lib/draw";
@@ -13,8 +20,9 @@ type Team = typeof schema.teams.$inferSelect;
 
 export default async function PrizesPage() {
   const me = await requireActive();
-  const [{ goldenBoot, playmaker, penalties, totalGoals }, teams, voters] = await Promise.all([
+  const [{ goldenBoot, playmaker, penalties }, main, teams, voters] = await Promise.all([
     getPrizes(),
+    getMainPrizes(),
     db.select().from(schema.teams),
     db
       .select({ name: schema.users.name, email: schema.users.email, pick: schema.users.championPick })
@@ -42,18 +50,47 @@ export default async function PrizesPage() {
   const myPick = me.championPick ? teamByCode.get(me.championPick) : null;
   const teamsByName = [...teams].sort((a, b) => a.name.localeCompare(b.name));
 
+  const mainRows = [
+    { label: "Champion", icon: "🏆", blurb: "Own the team that lifts the trophy", prize: PRIZES.champion, who: main.champion },
+    { label: "Runner-up", icon: "🥈", blurb: "Own the beaten finalist", prize: PRIZES.runnerUp, who: main.runnerUp },
+    { label: "Third", icon: "🥉", blurb: "Own the 3rd-place play-off winner", prize: PRIZES.third, who: main.third },
+    { label: "Fourth", icon: "🎖️", blurb: "Own the 4th-placed side", prize: PRIZES.fourth, who: main.fourth },
+  ];
+
   return (
     <main className="min-h-screen bg-runway">
       <SiteNav current="side-quests" user={me} />
       <div className="mx-auto max-w-4xl px-4 py-6">
         <header className="flex flex-wrap items-end justify-between gap-3 border-b border-hairline pb-4">
           <div>
-            <h1 className="font-board text-lg uppercase tracking-[0.3em] text-amber">✈ Bonus prizes</h1>
+            <h1 className="font-board text-lg uppercase tracking-[0.3em] text-amber">✈ Prizes</h1>
             <p className="mt-1 font-board text-[11px] uppercase tracking-[0.25em] text-ink-dim">
-              Side-quests · the owner of each leader takes the pot
+              Own the right team and the cash is yours
             </p>
           </div>
+          <div className="text-right">
+            <div className="font-display text-2xl font-extrabold leading-none text-ink">£{PRIZE_TOTAL}</div>
+            <div className="font-board text-[10px] uppercase tracking-widest text-ink-dim">total pot</div>
+          </div>
         </header>
+
+        {/* Main prizes — the big money */}
+        <section className="mt-6">
+          <h2 className="font-board text-sm uppercase tracking-[0.3em] text-ink">The big money</h2>
+          <div className="mt-3 overflow-hidden rounded-board border border-hairline bg-board">
+            {mainRows.map((r) => (
+              <div key={r.label} className="flex items-center gap-3 border-b border-hairline px-4 py-3 last:border-0">
+                <span className="text-xl" aria-hidden>{r.icon}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="font-display text-sm font-semibold text-ink">{r.label}</div>
+                  <div className="truncate font-board text-[10px] uppercase tracking-wider text-ink-dim">{r.blurb}</div>
+                </div>
+                <Holder who={r.who} />
+                <span className="w-14 shrink-0 text-right font-board text-lg tabular-nums text-amber">£{r.prize}</span>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* Crystal Ball — silly fun, no money, just bragging rights */}
         <section className="mt-6 overflow-hidden rounded-board border border-hairline bg-board">
@@ -112,32 +149,67 @@ export default async function PrizesPage() {
           )}
         </section>
 
-        {totalGoals === 0 ? (
-          <p className="mt-6 text-center font-board text-sm uppercase tracking-[0.3em] text-ink-dim">
-            No goals yet — prizes light up as results come in.
-          </p>
-        ) : (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <Prize title="Golden Boot" icon="🥾" unit="goals" rows={goldenBoot} className="sm:col-span-2" />
-            <Prize title="Playmaker" icon="🅰️" unit="assists" rows={playmaker} />
-            <Prize title="Penalty King" icon="🎯" unit="pens" rows={penalties} />
+        {/* Bonus prizes — always shown so everyone knows what they are */}
+        <section className="mt-6">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-board text-sm uppercase tracking-[0.3em] text-ink">Bonus prizes</h2>
+            <span className="font-board text-[10px] uppercase tracking-widest text-ink-dim">
+              the owner of each leader takes the pot
+            </span>
           </div>
-        )}
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <Prize
+              title="Golden Boot"
+              icon="🥾"
+              prize={PRIZES.goldenBoot}
+              blurb="Own the team of the tournament's top scorer."
+              rows={goldenBoot}
+              className="sm:col-span-2"
+            />
+            <Prize
+              title="Playmaker"
+              icon="🅰️"
+              prize={PRIZES.playmaker}
+              blurb="Own the team of the assist king."
+              rows={playmaker}
+            />
+            <Prize
+              title="Penalty King"
+              icon="🎯"
+              prize={PRIZES.penaltyKing}
+              blurb="Own the team of the deadliest spot-kick taker."
+              rows={penalties}
+            />
+          </div>
+        </section>
       </div>
     </main>
+  );
+}
+
+function Holder({ who }: { who: Finisher }) {
+  if (!who) {
+    return <span className="font-board text-[10px] uppercase tracking-widest text-ink-dim">TBD</span>;
+  }
+  return (
+    <span className="hidden truncate text-right font-display text-sm text-ink sm:inline">
+      {who.flag} {who.owner ?? "—"}
+    </span>
   );
 }
 
 function Prize({
   title,
   icon,
-  unit,
+  prize,
+  blurb,
   rows,
   className = "",
 }: {
   title: string;
   icon: string;
-  unit: string;
+  prize: number;
+  blurb: string;
   rows: PrizeRow[];
   className?: string;
 }) {
@@ -145,11 +217,16 @@ function Prize({
     <section className={`overflow-hidden rounded-board border border-hairline bg-board ${className}`}>
       <div className="flex items-center gap-2 border-b border-hairline px-4 py-3">
         <span className="text-xl" aria-hidden>{icon}</span>
-        <h2 className="font-display text-base font-bold text-ink">{title}</h2>
-        <span className="ml-auto font-board text-[10px] uppercase tracking-widest text-ink-dim">{unit}</span>
+        <h3 className="font-display text-base font-bold text-ink">{title}</h3>
+        <span className="ml-auto font-board text-lg tabular-nums text-amber">£{prize}</span>
       </div>
+      <p className="border-b border-hairline px-4 py-2 font-board text-[10px] uppercase tracking-wider text-ink-dim">
+        {blurb}
+      </p>
       {rows.length === 0 ? (
-        <p className="px-4 py-4 font-board text-[11px] uppercase tracking-widest text-ink-dim">No data yet</p>
+        <p className="px-4 py-4 font-board text-[11px] uppercase tracking-widest text-ink-dim">
+          Lights up as results come in
+        </p>
       ) : (
         <ul className="divide-y divide-hairline/60">
           {rows.map((r, i) => (

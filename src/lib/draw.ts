@@ -83,10 +83,10 @@ export async function commitPrimaryDraw() {
 }
 
 /**
- * Phase 2 — Standby. Distributes leftover teams as STANDBY seats (with an
- * overperformance multiplier) to ACTIVE users still under the seat cap.
+ * Phase 2 — Standby. Distributes leftover teams as extra seats to ACTIVE users
+ * still under the seat cap. All teams count equally — no payout multiplier.
  */
-export async function openStandbyAndDraw(seatCap = 3, standbyMultiplier = 1.5) {
+export async function openStandbyAndDraw(seatCap = 3, standbyMultiplier = 1) {
   await ensureSchema();
   const [existingSeats, allTeams, activeUsers] = await Promise.all([
     db.select().from(seats),

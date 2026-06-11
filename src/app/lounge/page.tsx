@@ -121,7 +121,6 @@ function Shell({
 }
 
 function TeamCard({ team }: { team: LoungeTeam }) {
-  const standby = team.type === "STANDBY";
   return (
     <div
       className={`relative overflow-hidden rounded-board border bg-board p-5 ${
@@ -148,9 +147,6 @@ function TeamCard({ team }: { team: LoungeTeam }) {
           </div>
           <div className="mt-1 flex items-center gap-2 font-board text-[10px] uppercase tracking-widest text-ink-dim">
             <span>Group {team.group ?? "?"}</span>
-            {standby && (
-              <span className="text-amber">✦ Standby ×{team.multiplier}</span>
-            )}
             <span className={team.eliminated ? "text-cancelled" : "text-boarding"}>
               {team.eliminated ? "Knocked out" : "In the hunt"}
             </span>

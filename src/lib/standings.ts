@@ -35,8 +35,7 @@ export async function getStandings(): Promise<GroupTable[]> {
     db
       .select({ teamId: seats.teamId, owner: users.name })
       .from(seats)
-      .innerJoin(users, eq(users.id, seats.userId))
-      .where(eq(seats.type, "PRIMARY")),
+      .innerJoin(users, eq(users.id, seats.userId)),
     db
       .select({ teamId: matchEvents.teamId, type: matchEvents.type, matchId: matchEvents.matchId })
       .from(matchEvents)

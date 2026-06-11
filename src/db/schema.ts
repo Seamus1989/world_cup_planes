@@ -175,6 +175,7 @@ export const matches = pgTable("match", {
   homePens: integer("home_pens"),
   awayPens: integer("away_pens"),
   winnerTeamId: text("winner_team_id").references(() => teams.id),
+  announcedAt: timestamp("announced_at", { mode: "date" }), // when the Tannoy broadcast this result
 });
 
 export const matchEvents = pgTable("match_event", {

@@ -109,11 +109,6 @@ export default async function SquadsPage() {
                         >
                           {t.name}
                         </span>
-                        {t.standby && (
-                          <span className="font-board text-[9px] uppercase tracking-wider text-amber">
-                            ✦ ×{t.multiplier}
-                          </span>
-                        )}
                         <span className="font-board text-[10px] uppercase tracking-widest text-ink-dim">
                           {t.group ?? ""}
                         </span>

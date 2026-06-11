@@ -59,8 +59,7 @@ export async function getBoardFixtures(): Promise<BoardMatch[]> {
   const ownerRows = await db
     .select({ teamId: seats.teamId, owner: users.name })
     .from(seats)
-    .innerJoin(users, eq(users.id, seats.userId))
-    .where(eq(seats.type, "PRIMARY"));
+    .innerJoin(users, eq(users.id, seats.userId));
   const ownerByTeam = new Map(ownerRows.map((r) => [r.teamId, r.owner]));
 
   return rows.map((r) => ({

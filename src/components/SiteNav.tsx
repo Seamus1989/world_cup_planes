@@ -6,7 +6,7 @@ const NAV = [
   { key: "group-stage", href: "/group-stage", label: "Group Stage" },
   { key: "knockout", href: "/knockout", label: "Knockout" },
   { key: "squads", href: "/squads", label: "Squads" },
-  { key: "side-quests", href: "/side-quests", label: "Side Quests" },
+  { key: "side-quests", href: "/side-quests", label: "Prizes" },
   { key: "lounge", href: "/lounge", label: "Lounge" },
 ];
 
