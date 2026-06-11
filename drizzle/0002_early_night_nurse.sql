@@ -1,0 +1,1 @@
+ALTER TABLE "match" ADD COLUMN "bracket_index" integer;

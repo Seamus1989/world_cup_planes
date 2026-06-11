@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+/*
+  Gate to Glory — "Departures" design system.
+  A dark night-departures hall: amber split-flap board on deep tarmac black.
+*/
+@theme {
+  /* Surfaces */
+  --color-tarmac: #07090d;
+  --color-board: #0f141c;
+  --color-board-raised: #161d28;
+  --color-hairline: #222c3a;
+
+  /* Ink */
+  --color-ink: #e8edf5;
+  --color-ink-dim: #9aa6b8;
+
+  /* Brand + functional status */
+  --color-amber: #ffb000;
+  --color-amber-dim: #9a6c12;
+  --color-boarding: #2fd07a;
+  --color-delayed: #ffd23f;
+  --color-cancelled: #ff5252;
+  --color-glory: #d8b15a;
+
+  /* Type — families bound at runtime by next/font on <html> */
+  --font-display: var(--ff-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--ff-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-board: var(--ff-doto), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Radii + easing */
+  --radius-board: 14px;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-tarmac);
+  color: var(--color-ink);
+  font-family: var(--ff-archivo), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* runway-glow backdrop */
+.bg-runway {
+  background-image:
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--color-amber) 4%, transparent),
+      transparent 260px
+    ),
+    radial-gradient(
+      45rem 45rem at 50% -12%,
+      color-mix(in oklab, var(--color-amber) 6%, transparent),
+      transparent
+    );
+}
+
+/* split-flap flip — the signature board motion */
+@keyframes flap-in {
+  0% {
+    transform: rotateX(-90deg);
+    opacity: 0;
+  }
+  55% {
+    transform: rotateX(8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+.animate-flap {
+  transform-origin: top center;
+  backface-visibility: hidden;
+  animation: flap-in 0.5s var(--ease-out-expo) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-flap {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
