@@ -57,6 +57,7 @@ export const users = pgTable("user", {
   // app-specific
   role: roleEnum("role").notNull().default("PLAYER"),
   status: userStatusEnum("status").notNull().default("PENDING"),
+  championPick: text("champion_pick"), // side-quest: team code they reckon lifts the trophy
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 

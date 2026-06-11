@@ -1,12 +1,45 @@
+import { eq } from "drizzle-orm";
 import { getPrizes, type PrizeRow } from "@/lib/prizes";
 import { requireActive } from "@/lib/session";
+import { db, schema } from "@/db";
+import { HOUSE_USER } from "@/lib/draw";
 import { SiteNav } from "@/components/SiteNav";
+import { setChampionPick } from "./actions";
 
 export const dynamic = "force-dynamic";
 
+type Team = typeof schema.teams.$inferSelect;
+
 export default async function PrizesPage() {
   const me = await requireActive();
-  const { goldenBoot, playmaker, penalties, totalGoals } = await getPrizes();
+  const [{ goldenBoot, playmaker, penalties, totalGoals }, teams, voters] = await Promise.all([
+    getPrizes(),
+    db.select().from(schema.teams),
+    db
+      .select({ name: schema.users.name, email: schema.users.email, pick: schema.users.championPick })
+      .from(schema.users)
+      .where(eq(schema.users.status, "ACTIVE")),
+  ]);
+
+  const teamByCode = new Map(teams.map((t) => [t.code, t]));
+  const byTeam = new Map<string, { team: Team; backers: string[] }>();
+  for (const v of voters) {
+    if (!v.pick || !v.name || v.email === HOUSE_USER.email) continue;
+    const t = teamByCode.get(v.pick);
+    if (!t) continue;
+    let g = byTeam.get(v.pick);
+    if (!g) {
+      g = { team: t, backers: [] };
+      byTeam.set(v.pick, g);
+    }
+    g.backers.push(v.name);
+  }
+  const board = [...byTeam.values()].sort(
+    (a, b) => b.backers.length - a.backers.length || a.team.name.localeCompare(b.team.name),
+  );
+  const totalPicks = board.reduce((n, b) => n + b.backers.length, 0);
+  const myPick = me.championPick ? teamByCode.get(me.championPick) : null;
+  const teamsByName = [...teams].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <main className="min-h-screen bg-runway">
@@ -21,8 +54,80 @@ export default async function PrizesPage() {
           </div>
         </header>
 
+        {/* Crystal Ball — silly fun, no money, just bragging rights */}
+        <section className="mt-6 overflow-hidden rounded-board border border-hairline bg-board">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-hairline px-4 py-3">
+            <span className="text-xl" aria-hidden>🔮</span>
+            <h2 className="font-display text-base font-bold text-ink">Crystal Ball</h2>
+            <span className="font-board text-[10px] uppercase tracking-widest text-ink-dim">
+              who lifts the trophy? · no money, pure bragging rights
+            </span>
+            <span className="ml-auto font-board text-[10px] uppercase tracking-widest text-ink-dim">
+              {totalPicks} {totalPicks === 1 ? "call" : "calls"}
+            </span>
+          </div>
+
+          <form
+            action={setChampionPick}
+            className="flex flex-wrap items-center gap-2 border-b border-hairline px-4 py-4"
+          >
+            <span className="font-board text-[11px] uppercase tracking-widest text-ink-dim">Your call</span>
+            <select
+              name="team"
+              defaultValue={me.championPick ?? ""}
+              className="rounded border border-hairline bg-board-raised px-2 py-1.5 text-sm text-ink"
+            >
+              <option value="">— pick a team —</option>
+              {teamsByName.map((t) => (
+                <option key={t.code} value={t.code}>
+                  {t.flagEmoji} {t.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              className="rounded-md bg-amber px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-tarmac transition hover:brightness-110"
+            >
+              Call it
+            </button>
+            {myPick && (
+              <span className="font-board text-[11px] uppercase tracking-wider text-ink-dim">
+                Backing {myPick.flagEmoji} {myPick.name}
+                {myPick.eliminated && <span className="text-cancelled"> · busted</span>}
+              </span>
+            )}
+          </form>
+
+          {board.length === 0 ? (
+            <p className="px-4 py-4 font-board text-[11px] uppercase tracking-widest text-ink-dim">
+              No calls yet — be the first to back a winner.
+            </p>
+          ) : (
+            <ul className="divide-y divide-hairline/60">
+              {board.map(({ team, backers }, i) => (
+                <li key={team.code} className={`flex items-center gap-3 px-4 py-2.5 ${i === 0 ? "bg-amber/5" : ""}`}>
+                  <span className={team.eliminated ? "opacity-40 grayscale" : ""} aria-hidden>
+                    {team.flagEmoji}
+                  </span>
+                  <span
+                    className={`shrink-0 font-display text-sm font-semibold ${
+                      team.eliminated ? "text-cancelled line-through decoration-2" : "text-ink"
+                    }`}
+                  >
+                    {team.name}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-right font-board text-[10px] uppercase tracking-wider text-ink-dim">
+                    {backers.join(", ")}
+                  </span>
+                  <span className="shrink-0 font-board text-lg tabular-nums text-amber">{backers.length}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         {totalGoals === 0 ? (
-          <p className="mt-16 text-center font-board text-sm uppercase tracking-[0.3em] text-ink-dim">
+          <p className="mt-6 text-center font-board text-sm uppercase tracking-[0.3em] text-ink-dim">
             No goals yet — prizes light up as results come in.
           </p>
         ) : (
