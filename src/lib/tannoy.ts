@@ -2,8 +2,16 @@ import { db, ensureSchema, schema } from "@/db";
 import { generateText } from "ai";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { getStandings } from "./standings";
+import { HOUSE_USER } from "./draw";
 
 const { matches, matchEvents, teams, seats, users } = schema;
+
+/** Owners are referred to by first name only: "Seamus Keanu Reeves" → "Seamus", "CJ Daniel-Neild" → "CJ". */
+const firstName = (name: string | null): string | null => {
+  if (!name) return null;
+  if (name === HOUSE_USER.name) return name; // keep "The House" whole
+  return name.trim().split(/\s+/)[0] || name;
+};
 
 /* ------------------------------------------------------------------ */
 /* The voice                                                           */
@@ -82,7 +90,7 @@ export async function getTannoyContext(): Promise<TannoyContext> {
   if (finished.length === 0) return { matchIds: [], games: [], groups: {} };
 
   const teamById = new Map(allTeams.map((t) => [t.id, t]));
-  const ownerByTeam = new Map(ownerRows.map((r) => [r.teamId, r.owner]));
+  const ownerByTeam = new Map(ownerRows.map((r) => [r.teamId, firstName(r.owner)]));
 
   const ids = finished.map((m) => m.id);
   const events = await db
@@ -135,7 +143,7 @@ export async function getTannoyContext(): Promise<TannoyContext> {
     groups[g.group] = g.rows.map((r, i) => ({
       pos: i + 1,
       team: r.name,
-      owner: r.owner,
+      owner: firstName(r.owner),
       played: g.played,
       pts: r.pts,
       gd: r.gd,
