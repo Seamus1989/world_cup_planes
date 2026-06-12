@@ -20,7 +20,7 @@ type Team = typeof schema.teams.$inferSelect;
 
 export default async function PrizesPage() {
   const me = await requireActive();
-  const [{ goldenBoot, playmaker, penalties }, main, teams, voters] = await Promise.all([
+  const [{ goldenBoot, playmaker, conceded, defence, zinedine, homeGoals }, main, teams, voters] = await Promise.all([
     getPrizes(),
     getMainPrizes(),
     db.select().from(schema.teams),
@@ -159,12 +159,39 @@ export default async function PrizesPage() {
           </div>
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
             <Prize
+              title="Welcome Aboard"
+              icon="🚪"
+              prize={PRIZES.conceded}
+              blurb="Most goals conceded — they let absolutely anyone in."
+              rows={conceded}
+            />
+            <Prize
+              title="Border Control"
+              icon="🛂"
+              prize={PRIZES.defence}
+              blurb="Fewest goals conceded per game played — fair on early casualties."
+              rows={defence}
+            />
+            <Prize
+              title="Home Comforts"
+              icon="🏟️"
+              prize={PRIZES.homeGoals}
+              blurb="Own the team with the most goals as the home side."
+              rows={homeGoals}
+            />
+            <Prize
+              title="The Zinedine"
+              icon="🟥"
+              prize={PRIZES.zinedine}
+              blurb="Most yellow and red cards — the headbutt memorial trophy."
+              rows={zinedine}
+            />
+            <Prize
               title="Golden Boot"
               icon="🥾"
               prize={PRIZES.goldenBoot}
               blurb="Own the team of the tournament's top scorer."
               rows={goldenBoot}
-              className="sm:col-span-2"
             />
             <Prize
               title="Playmaker"
@@ -172,13 +199,6 @@ export default async function PrizesPage() {
               prize={PRIZES.playmaker}
               blurb="Own the team of the assist king."
               rows={playmaker}
-            />
-            <Prize
-              title="Penalty King"
-              icon="🎯"
-              prize={PRIZES.penaltyKing}
-              blurb="Own the team of the deadliest spot-kick taker."
-              rows={penalties}
             />
           </div>
         </section>

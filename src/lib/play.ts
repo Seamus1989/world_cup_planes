@@ -130,6 +130,22 @@ async function playMatch(m: MatchRow) {
   };
   await addGoals(m.homeTeamId, hs);
   await addGoals(m.awayTeamId, as);
+  // a sprinkling of cards so the Air Rage side quest lights up in dry runs
+  for (const teamId of [m.homeTeamId, m.awayTeamId]) {
+    if (!teamId) continue;
+    const n = Math.random() < 0.55 ? (Math.random() < 0.25 ? 2 : 1) : 0;
+    for (let i = 0; i < n; i++) {
+      const name = pick(SCORERS);
+      evs.push({
+        matchId: m.id,
+        teamId,
+        playerId: await resolvePlayer(teamId, name),
+        playerName: name,
+        type: Math.random() < 0.12 ? "RED" : "YELLOW",
+        minute: 1 + Math.floor(Math.random() * 90),
+      });
+    }
+  }
   if (evs.length) await db.insert(matchEvents).values(evs);
 
   if (isKO && winner) {

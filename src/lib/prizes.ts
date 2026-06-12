@@ -15,13 +15,16 @@ export type PrizeRow = {
 export type Prizes = {
   goldenBoot: PrizeRow[];
   playmaker: PrizeRow[];
-  penalties: PrizeRow[];
+  conceded: PrizeRow[]; // Welcome Aboard — most goals conceded
+  defence: PrizeRow[]; // Border Control — fewest conceded per game played
+  zinedine: PrizeRow[]; // The Zinedine — most yellow/red cards
+  homeGoals: PrizeRow[]; // Home Comforts — most goals as the home side
   totalGoals: number;
 };
 
 export async function getPrizes(): Promise<Prizes> {
   await ensureSchema();
-  const [evs, allPlayers, allTeams, ownerRows] = await Promise.all([
+  const [evs, allPlayers, allTeams, ownerRows, finishedMatches] = await Promise.all([
     db
       .select({
         type: matchEvents.type,
@@ -37,6 +40,15 @@ export async function getPrizes(): Promise<Prizes> {
       .select({ teamId: seats.teamId, owner: users.name })
       .from(seats)
       .innerJoin(users, eq(users.id, seats.userId)),
+    db
+      .select({
+        homeTeamId: matches.homeTeamId,
+        awayTeamId: matches.awayTeamId,
+        homeScore: matches.homeScore,
+        awayScore: matches.awayScore,
+      })
+      .from(matches)
+      .where(eq(matches.status, "FINISHED")),
   ]);
 
   const playerById = new Map(allPlayers.map((p) => [p.id, p]));
@@ -81,6 +93,48 @@ export async function getPrizes(): Promise<Prizes> {
     };
   };
 
+  // Team-level quests: Air Rage (most cards) + Home Comforts (most goals as the home side)
+  const cardTally = new Map<string, { y: number; r: number }>();
+  for (const e of evs) {
+    if ((e.type !== "YELLOW" && e.type !== "RED") || !e.teamId) continue;
+    const c = cardTally.get(e.teamId) ?? { y: 0, r: 0 };
+    if (e.type === "YELLOW") c.y++;
+    else c.r++;
+    cardTally.set(e.teamId, c);
+  }
+  const homeTally = new Map<string, { goals: number; games: number }>();
+  for (const m of finishedMatches) {
+    if (!m.homeTeamId || m.homeScore == null) continue;
+    const h = homeTally.get(m.homeTeamId) ?? { goals: 0, games: 0 };
+    h.goals += m.homeScore;
+    h.games++;
+    homeTally.set(m.homeTeamId, h);
+  }
+  // Goals conceded per team (Welcome Aboard = most; Border Control = fewest per game)
+  const concededTally = new Map<string, { against: number; games: number }>();
+  for (const m of finishedMatches) {
+    if (!m.homeTeamId || !m.awayTeamId || m.homeScore == null || m.awayScore == null) continue;
+    const h = concededTally.get(m.homeTeamId) ?? { against: 0, games: 0 };
+    h.against += m.awayScore;
+    h.games++;
+    concededTally.set(m.homeTeamId, h);
+    const a = concededTally.get(m.awayTeamId) ?? { against: 0, games: 0 };
+    a.against += m.homeScore;
+    a.games++;
+    concededTally.set(m.awayTeamId, a);
+  }
+  const teamRow = (teamId: string, value: number, sub?: string): PrizeRow => {
+    const t = teamById.get(teamId);
+    return {
+      player: t?.name ?? "—",
+      team: t?.groupLetter ? `Group ${t.groupLetter}` : "—",
+      flag: t?.flagEmoji ?? "",
+      owner: ownerByTeam.get(teamId) ?? null,
+      value,
+      sub,
+    };
+  };
+
   return {
     totalGoals,
     goldenBoot: [...scorers.values()]
@@ -91,9 +145,21 @@ export async function getPrizes(): Promise<Prizes> {
       .map((a) => row(a.name, a.teamId, a.n))
       .sort((a, b) => b.value - a.value)
       .slice(0, 8),
-    penalties: [...scorers.values()]
-      .filter((s) => s.pens > 0)
-      .map((s) => row(s.name, s.teamId, s.pens))
+    conceded: [...concededTally.entries()]
+      .map(([id, c]) => teamRow(id, c.against, `in ${c.games} ${c.games === 1 ? "game" : "games"}`))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6),
+    defence: [...concededTally.entries()]
+      .filter(([, c]) => c.games > 0)
+      .map(([id, c]) => teamRow(id, Math.round((c.against / c.games) * 100) / 100, `${c.against} in ${c.games}`))
+      .sort((a, b) => a.value - b.value)
+      .slice(0, 6),
+    zinedine: [...cardTally.entries()]
+      .map(([id, c]) => teamRow(id, c.y + c.r, `${c.y}Y ${c.r}R`))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6),
+    homeGoals: [...homeTally.entries()]
+      .map(([id, h]) => teamRow(id, h.goals, `${h.games} home ${h.games === 1 ? "game" : "games"}`))
       .sort((a, b) => b.value - a.value)
       .slice(0, 6),
   };
@@ -104,13 +170,18 @@ export async function getPrizes(): Promise<Prizes> {
 /* ------------------------------------------------------------------ */
 
 export const PRIZES = {
-  champion: 50,
+  champion: 45,
   runnerUp: 20,
   third: 10,
   fourth: 5,
-  goldenBoot: 15,
-  playmaker: 10,
-  penaltyKing: 10,
+  // Booby prizes pay £10, "good team" quests £5 — the good teams are probably
+  // cashing the main pot anyway.
+  conceded: 10, // Welcome Aboard — most goals conceded
+  zinedine: 10, // The Zinedine — most cards
+  defence: 5, // Border Control — fewest conceded per game played
+  homeGoals: 5, // Home Comforts — most goals as the home side
+  goldenBoot: 5,
+  playmaker: 5,
 } as const;
 
 export const PRIZE_TOTAL = Object.values(PRIZES).reduce((a, b) => a + b, 0); // £120
