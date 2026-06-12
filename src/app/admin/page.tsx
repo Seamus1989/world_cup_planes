@@ -40,7 +40,10 @@ export default async function AdminPage() {
   const tiles = [
     { href: "/admin/matches", label: "Score console", desc: "Enter results + auto-fill from a report URL" },
     { href: "/fixtures", label: "Departures board", desc: "Public fixtures + results" },
-    { href: "/dev", label: "Dev cockpit", desc: "Seed, draw, simulate" },
+    // dev cockpit is local-only: its page 404s and its actions throw in production
+    ...(process.env.NODE_ENV !== "production"
+      ? [{ href: "/dev", label: "Dev cockpit", desc: "Seed, draw, simulate" }]
+      : []),
   ];
 
   return (

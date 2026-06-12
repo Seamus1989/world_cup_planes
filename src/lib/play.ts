@@ -112,8 +112,21 @@ async function playMatch(m: MatchRow) {
   await db.delete(matchEvents).where(eq(matchEvents.matchId, m.id));
 
   const evs: (typeof matchEvents.$inferInsert)[] = [];
-  const addGoals = async (teamId: string | null, n: number) => {
+  const addGoals = async (teamId: string | null, oppId: string | null, n: number) => {
     for (let i = 0; i < n; i++) {
+      // occasionally one of the goals is an own goal by the OPPOSITION (the culprit's team)
+      if (oppId && Math.random() < 0.07) {
+        const name = pick(SCORERS);
+        evs.push({
+          matchId: m.id,
+          teamId: oppId,
+          playerId: await resolvePlayer(oppId, name),
+          playerName: name,
+          type: "OWN_GOAL",
+          minute: 1 + Math.floor(Math.random() * 90),
+        });
+        continue;
+      }
       const pen = Math.random() < 0.15;
       const name = pick(SCORERS);
       const playerId = await resolvePlayer(teamId, name);
@@ -128,8 +141,8 @@ async function playMatch(m: MatchRow) {
       });
     }
   };
-  await addGoals(m.homeTeamId, hs);
-  await addGoals(m.awayTeamId, as);
+  await addGoals(m.homeTeamId, m.awayTeamId, hs);
+  await addGoals(m.awayTeamId, m.homeTeamId, as);
   // a sprinkling of cards so the Air Rage side quest lights up in dry runs
   for (const teamId of [m.homeTeamId, m.awayTeamId]) {
     if (!teamId) continue;

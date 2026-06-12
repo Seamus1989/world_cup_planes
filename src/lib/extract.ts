@@ -70,6 +70,7 @@ The match is ${homeTeam} (HOME) vs ${awayTeam} (AWAY).
 Extract the final score and every goal and card.
 Rules:
 - "team": HOME for ${homeTeam}, AWAY for ${awayTeam}.
+- OWN_GOAL: set "team" to the side whose player scored into his OWN net (the culprit), and "player" to that player. The goal itself counts in the OPPOSITION's scoreline.
 - type: GOAL (open play), PENALTY_GOAL, OWN_GOAL, PENALTY_MISS, YELLOW, RED.
 - "player": who scored / was carded. "assist": the assisting player for a goal, else null.
 - "minute": the match minute as a number, or null.

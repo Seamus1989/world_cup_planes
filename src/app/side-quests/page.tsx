@@ -20,7 +20,7 @@ type Team = typeof schema.teams.$inferSelect;
 
 export default async function PrizesPage() {
   const me = await requireActive();
-  const [{ goldenBoot, playmaker, conceded, defence, zinedine, homeGoals }, main, teams, voters] = await Promise.all([
+  const [{ goldenBoot, playmaker, conceded, defence, zinedine, ownGoals }, main, teams, voters] = await Promise.all([
     getPrizes(),
     getMainPrizes(),
     db.select().from(schema.teams),
@@ -126,7 +126,7 @@ export default async function PrizesPage() {
               No calls yet — be the first to back a winner.
             </p>
           ) : (
-            <ul className="divide-y divide-hairline/60">
+            <ul className="max-h-72 divide-y divide-hairline/60 overflow-y-auto overscroll-contain">
               {board.map(({ team, backers }, i) => (
                 <li key={team.code} className={`flex items-center gap-3 px-4 py-2.5 ${i === 0 ? "bg-amber/5" : ""}`}>
                   <span className={team.eliminated ? "opacity-40 grayscale" : ""} aria-hidden>
@@ -173,11 +173,11 @@ export default async function PrizesPage() {
               rows={defence}
             />
             <Prize
-              title="Home Comforts"
-              icon="🏟️"
-              prize={PRIZES.homeGoals}
-              blurb="Own the team with the most goals as the home side."
-              rows={homeGoals}
+              title="Friendly Fire"
+              icon="🤦"
+              prize={PRIZES.ownGoals}
+              blurb="Most own goals — keep finding their own net."
+              rows={ownGoals}
             />
             <Prize
               title="The Zinedine"
@@ -248,7 +248,8 @@ function Prize({
           Lights up as results come in
         </p>
       ) : (
-        <ul className="divide-y divide-hairline/60">
+        // max-h cuts the ~5th row in half on purpose — the peek says "scroll for more"
+        <ul className="max-h-60 divide-y divide-hairline/60 overflow-y-auto overscroll-contain">
           {rows.map((r, i) => (
             <li key={`${r.player}-${i}`} className={`flex items-center gap-3 px-4 py-2.5 ${i === 0 ? "bg-amber/5" : ""}`}>
               <span className={`w-5 text-center font-board text-xs tabular-nums ${i === 0 ? "text-glory" : "text-ink-dim"}`}>{i + 1}</span>

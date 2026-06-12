@@ -22,6 +22,17 @@ import { playMatches, recomputeEliminations } from "@/lib/play";
 const cmd = process.argv[2] ?? "help";
 const arg = process.argv[3];
 
+// Safety net: refuse to MUTATE a remote database unless explicitly forced.
+// (bun auto-loads .env.local, so DATABASE_URL is very likely your LIVE DB.)
+const mutating = !["status", "help"].includes(cmd);
+if (process.env.DATABASE_URL && mutating && process.env.FORCE !== "1") {
+  const host = process.env.DATABASE_URL.match(/@([^/:?]+)/)?.[1] ?? "remote DB";
+  console.error(`⛔ '${cmd}' would modify the remote database at ${host}.`);
+  console.error(`   If you're sure, re-run with FORCE=1:`);
+  console.error(`   FORCE=1 bun scripts/timemachine.ts ${process.argv.slice(2).join(" ")}`);
+  process.exit(1);
+}
+
 async function status() {
   await ensureSchema();
   const [teams, users, seats, ms] = await Promise.all([

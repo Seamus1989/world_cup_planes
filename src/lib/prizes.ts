@@ -18,7 +18,7 @@ export type Prizes = {
   conceded: PrizeRow[]; // Welcome Aboard — most goals conceded
   defence: PrizeRow[]; // Border Control — fewest conceded per game played
   zinedine: PrizeRow[]; // The Zinedine — most yellow/red cards
-  homeGoals: PrizeRow[]; // Home Comforts — most goals as the home side
+  ownGoals: PrizeRow[]; // Friendly Fire — most own goals (attributed to the culprit's team)
   totalGoals: number;
 };
 
@@ -102,13 +102,11 @@ export async function getPrizes(): Promise<Prizes> {
     else c.r++;
     cardTally.set(e.teamId, c);
   }
-  const homeTally = new Map<string, { goals: number; games: number }>();
-  for (const m of finishedMatches) {
-    if (!m.homeTeamId || m.homeScore == null) continue;
-    const h = homeTally.get(m.homeTeamId) ?? { goals: 0, games: 0 };
-    h.goals += m.homeScore;
-    h.games++;
-    homeTally.set(m.homeTeamId, h);
+  // Own goals (Friendly Fire) — the event's teamId is the CULPRIT's team
+  const ownGoalTally = new Map<string, number>();
+  for (const e of evs) {
+    if (e.type !== "OWN_GOAL" || !e.teamId) continue;
+    ownGoalTally.set(e.teamId, (ownGoalTally.get(e.teamId) ?? 0) + 1);
   }
   // Goals conceded per team (Welcome Aboard = most; Border Control = fewest per game)
   const concededTally = new Map<string, { against: number; games: number }>();
@@ -144,24 +142,24 @@ export async function getPrizes(): Promise<Prizes> {
     playmaker: [...assists.values()]
       .map((a) => row(a.name, a.teamId, a.n))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 8),
+      .slice(0, 10),
     conceded: [...concededTally.entries()]
       .map(([id, c]) => teamRow(id, c.against, `in ${c.games} ${c.games === 1 ? "game" : "games"}`))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 6),
+      .slice(0, 10),
     defence: [...concededTally.entries()]
       .filter(([, c]) => c.games > 0)
       .map(([id, c]) => teamRow(id, Math.round((c.against / c.games) * 100) / 100, `${c.against} in ${c.games}`))
       .sort((a, b) => a.value - b.value)
-      .slice(0, 6),
+      .slice(0, 10),
     zinedine: [...cardTally.entries()]
       .map(([id, c]) => teamRow(id, c.y + c.r, `${c.y}Y ${c.r}R`))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 6),
-    homeGoals: [...homeTally.entries()]
-      .map(([id, h]) => teamRow(id, h.goals, `${h.games} home ${h.games === 1 ? "game" : "games"}`))
+      .slice(0, 10),
+    ownGoals: [...ownGoalTally.entries()]
+      .map(([id, n]) => teamRow(id, n))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 6),
+      .slice(0, 10),
   };
 }
 
@@ -170,7 +168,7 @@ export async function getPrizes(): Promise<Prizes> {
 /* ------------------------------------------------------------------ */
 
 export const PRIZES = {
-  champion: 45,
+  champion: 40,
   runnerUp: 20,
   third: 10,
   fourth: 5,
@@ -178,8 +176,8 @@ export const PRIZES = {
   // cashing the main pot anyway.
   conceded: 10, // Welcome Aboard — most goals conceded
   zinedine: 10, // The Zinedine — most cards
+  ownGoals: 10, // Friendly Fire — most own goals
   defence: 5, // Border Control — fewest conceded per game played
-  homeGoals: 5, // Home Comforts — most goals as the home side
   goldenBoot: 5,
   playmaker: 5,
 } as const;
