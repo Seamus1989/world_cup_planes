@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { runExtract, saveMatch, type DraftEvent } from "./actions";
+import { runExtract, searchResult, saveMatch, type DraftEvent } from "./actions";
 
 const EVENT_TYPES = ["GOAL", "PENALTY_GOAL", "OWN_GOAL", "PENALTY_MISS", "YELLOW", "RED"] as const;
 
@@ -58,6 +58,34 @@ export function MatchConsole({
   const homeName = homeT?.name ?? match.homeLabel ?? "Home";
   const awayName = awayT?.name ?? match.awayLabel ?? "Away";
 
+  function applyResult(r: Awaited<ReturnType<typeof runExtract>>) {
+    if (r.error) return setNotice({ kind: "error", text: r.error });
+    if (!r.found) {
+      setSummary(r.summary);
+      return setNotice({ kind: "error", text: r.summary || "Couldn't find this result." });
+    }
+    setHome(r.homeScore?.toString() ?? "");
+    setAway(r.awayScore?.toString() ?? "");
+    setStatus(r.status);
+    setEvents(r.events.map((e) => ({ team: e.team, type: e.type, player: e.player, assist: e.assist, minute: e.minute })));
+    setHomePens(r.shootout ? String(r.shootout.home) : "");
+    setAwayPens(r.shootout ? String(r.shootout.away) : "");
+    setSourceUrl(r.sourceUrl);
+    setSummary(r.summary);
+    setNotice(
+      r.mock
+        ? { kind: "mock", text: "Mock data (no AI key) — real extraction kicks in once AI_GATEWAY_API_KEY is set" }
+        : { kind: "info", text: "Filled in — review & save" },
+    );
+  }
+
+  function applySearch() {
+    setNotice({ kind: "info", text: "Searching the web…" });
+    start(async () => {
+      applyResult(await searchResult(match.id));
+    });
+  }
+
   function applyExtract() {
     if (!url.trim()) {
       setNotice({ kind: "error", text: "Paste a match-report URL first" });
@@ -65,21 +93,7 @@ export function MatchConsole({
     }
     setNotice(null);
     start(async () => {
-      const r = await runExtract(match.id, url.trim());
-      if (r.error) return setNotice({ kind: "error", text: r.error });
-      setHome(r.homeScore?.toString() ?? "");
-      setAway(r.awayScore?.toString() ?? "");
-      setStatus(r.status);
-      setEvents(r.events.map((e) => ({ team: e.team, type: e.type, player: e.player, assist: e.assist, minute: e.minute })));
-      setHomePens(r.shootout ? String(r.shootout.home) : "");
-      setAwayPens(r.shootout ? String(r.shootout.away) : "");
-      setSourceUrl(r.sourceUrl);
-      setSummary(r.summary);
-      setNotice(
-        r.mock
-          ? { kind: "mock", text: "Mock data (no AI key) — real extraction kicks in once AI_GATEWAY_API_KEY is set" }
-          : { kind: "info", text: "Extracted — review & save" },
-      );
+      applyResult(await runExtract(match.id, url.trim()));
     });
   }
 
@@ -136,14 +150,17 @@ export function MatchConsole({
         </header>
 
         <section className="mt-5 rounded-board border border-hairline bg-board p-4">
-          <h2 className="font-board text-[11px] uppercase tracking-[0.3em] text-amber">Auto-fill from a match report</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://… match report URL" className={`${inputCls} min-w-64 flex-1`} />
-            <button onClick={applyExtract} disabled={pending} className="rounded bg-amber px-4 py-1.5 font-board text-sm font-semibold text-tarmac transition hover:brightness-110 disabled:opacity-50">
-              {pending ? "Working…" : "Fetch & extract"}
+          <h2 className="font-board text-[11px] uppercase tracking-[0.3em] text-amber">Auto-fill the result</h2>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button onClick={applySearch} disabled={pending} className="rounded bg-amber px-4 py-1.5 font-board text-sm font-semibold text-tarmac transition hover:brightness-110 disabled:opacity-50">
+              {pending ? "Working…" : "🔎 Fetch result (web)"}
             </button>
-            <button onClick={applyExtract} disabled={pending || !sourceUrl} className="rounded border border-hairline px-4 py-1.5 font-board text-sm transition hover:border-amber/50 disabled:opacity-40">
-              Try again
+            <span className="font-board text-[11px] uppercase tracking-widest text-ink-dim">searches the live web · no URL needed</span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2 border-t border-hairline/60 pt-3">
+            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="…or paste a report URL" className={`${inputCls} min-w-64 flex-1`} />
+            <button onClick={applyExtract} disabled={pending} className="rounded border border-hairline px-4 py-1.5 font-board text-sm transition hover:border-amber/50 disabled:opacity-50">
+              {pending ? "Working…" : "Fetch from URL"}
             </button>
           </div>
           {sourceUrl && (

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db, ensureSchema, schema } from "@/db";
-import { extractMatchFromUrl, type MatchExtract } from "@/lib/extract";
+import { extractMatchFromUrl, searchMatchResult, type MatchExtract } from "@/lib/extract";
 import { resolvePlayer } from "@/lib/players";
 import { requireAdmin } from "@/lib/session";
 
@@ -33,6 +33,7 @@ export async function runExtract(matchId: string, url: string): Promise<MatchExt
     .limit(1);
 
   const empty: MatchExtract = {
+    found: false,
     homeScore: null,
     awayScore: null,
     status: "SCHEDULED",
@@ -47,6 +48,45 @@ export async function runExtract(matchId: string, url: string): Promise<MatchExt
       url,
       homeTeam: m.homeName ?? "Home",
       awayTeam: m.awayName ?? "Away",
+    });
+  } catch (e) {
+    return { ...empty, error: (e as Error).message };
+  }
+}
+
+/** Live web-search the result via Sonar — no URL needed, uses the fixture's teams + date. Does NOT save. */
+export async function searchResult(matchId: string): Promise<MatchExtract> {
+  await requireAdmin();
+  await ensureSchema();
+  const home = alias(teams, "home");
+  const away = alias(teams, "away");
+  const [m] = await db
+    .select({ homeName: home.name, awayName: away.name, kickoff: matches.kickoffUtc })
+    .from(matches)
+    .leftJoin(home, eq(home.id, matches.homeTeamId))
+    .leftJoin(away, eq(away.id, matches.awayTeamId))
+    .where(eq(matches.id, matchId))
+    .limit(1);
+
+  const empty: MatchExtract = {
+    found: false,
+    homeScore: null,
+    awayScore: null,
+    status: "SCHEDULED",
+    events: [],
+    shootout: null,
+    summary: "",
+    sourceUrl: "web-search",
+  };
+  if (!m) return { ...empty, error: "Match not found" };
+  if (!m.homeName || !m.awayName) {
+    return { ...empty, error: "Both teams must be set before searching (knockout slots may still be TBD)." };
+  }
+  try {
+    return await searchMatchResult({
+      homeTeam: m.homeName,
+      awayTeam: m.awayName,
+      dateISO: m.kickoff ? m.kickoff.toISOString().slice(0, 10) : undefined,
     });
   } catch (e) {
     return { ...empty, error: (e as Error).message };
