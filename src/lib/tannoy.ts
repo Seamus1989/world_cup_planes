@@ -26,10 +26,19 @@ const ukTime = new Intl.DateTimeFormat("en-GB", {
 /** Top 3 of each side-quest leaderboard, labelled for Big John (shared by recap + day-ahead). */
 function buildSideQuests(prizes: Prizes): TannoyContext["sideQuests"] {
   const top3 = (rows: PrizeRow[]) =>
-    rows.slice(0, 3).map((r) => ({ leader: r.player, owner: firstName(r.owner), value: r.value, note: r.sub ?? null }));
+    rows.slice(0, 3).map((r) => ({
+      leader: r.player,
+      owner: firstName(r.owner),
+      value: r.value,
+      note: r.sub ?? null,
+    }));
   return {
-    "Welcome Aboard — MOST goals conceded (£10 booby prize)": top3(prizes.conceded),
-    "The Zinedine — MOST yellow/red cards (£10 booby prize)": top3(prizes.zinedine),
+    "Welcome Aboard — MOST goals conceded (£10 booby prize)": top3(
+      prizes.conceded,
+    ),
+    "The Zinedine — MOST yellow/red cards (£10 booby prize)": top3(
+      prizes.zinedine,
+    ),
     "Friendly Fire — MOST own goals (£10 booby prize)": top3(prizes.ownGoals),
     "Border Control — FEWEST conceded per game (£5)": top3(prizes.defence),
     "Golden Boot — most goals (£5)": top3(prizes.goldenBoot),
@@ -52,7 +61,8 @@ Voice & style:
 - The PEOPLE are the story — name them (use the first name you're given) and make them the punchline.
 - A team owned by "The House" is the leftover/charity pot, not a real person — only a light touch ("the charity nicked that one, lovely jubbly"), never roast it.
 - Pile on the airport/flight puns (gate, boarding, turbulence, baggage carousel, runway, lost luggage, brace position) — be a bit shameless about it.
-- Punchy: 2–5 sentences for the whole update, even across a few games. A Slack message, not a match report.
+- Use LINE BREAKS: one thought per short line, with a blank line between beats. NEVER a dense wall of text — if a sentence is rambling, split it or bin it.
+- Be SELECTIVE: pick the 3–4 juiciest things (a thrashing, a big name on the line, one cheeky side-quest jab) and leave the rest. Don't cram in every stat.
 
 Sign-off:
 - ALWAYS finish on its own line with a cheesy Big John sign-off, and VARY it every time — e.g. "Big John, over and out! ✈", "Right, kettle's on — Big John signing off. 🫖", "Big John out — Bob's your uncle, Fanny's your aunt.", "Mind the closing doors — ta-ta from Big John.", "Tray tables up, cheers mate — Big John done."
@@ -121,7 +131,12 @@ export type TannoyContext = {
   >;
   sideQuests: Record<
     string,
-    { leader: string; owner: string | null; value: number; note: string | null }[]
+    {
+      leader: string;
+      owner: string | null;
+      value: number;
+      note: string | null;
+    }[]
   >;
 };
 
@@ -157,7 +172,8 @@ export async function getTannoyContext(): Promise<TannoyContext> {
 
   const sideQuests = buildSideQuests(prizes);
 
-  if (finished.length === 0) return { matchIds: [], games: [], groups: {}, sideQuests };
+  if (finished.length === 0)
+    return { matchIds: [], games: [], groups: {}, sideQuests };
 
   const teamById = new Map(allTeams.map((t) => [t.id, t]));
   const ownerByTeam = new Map(
@@ -229,10 +245,15 @@ export async function getTannoyContext(): Promise<TannoyContext> {
 /* The day ahead (upcoming fixtures + what's on the line)              */
 /* ------------------------------------------------------------------ */
 
-export async function getDayAheadContext(opts?: { now?: Date; hoursAhead?: number }): Promise<DayAheadContext> {
+export async function getDayAheadContext(opts?: {
+  now?: Date;
+  hoursAhead?: number;
+}): Promise<DayAheadContext> {
   await ensureSchema();
   const now = opts?.now ?? new Date();
-  const horizon = new Date(now.getTime() + (opts?.hoursAhead ?? 18) * 3_600_000);
+  const horizon = new Date(
+    now.getTime() + (opts?.hoursAhead ?? 18) * 3_600_000,
+  );
 
   const [allTeams, ownerRows, upcoming, standings, prizes] = await Promise.all([
     db.select().from(teams),
@@ -243,14 +264,22 @@ export async function getDayAheadContext(opts?: { now?: Date; hoursAhead?: numbe
     db
       .select()
       .from(matches)
-      .where(and(eq(matches.status, "SCHEDULED"), gte(matches.kickoffUtc, now), lte(matches.kickoffUtc, horizon)))
+      .where(
+        and(
+          eq(matches.status, "SCHEDULED"),
+          gte(matches.kickoffUtc, now),
+          lte(matches.kickoffUtc, horizon),
+        ),
+      )
       .orderBy(asc(matches.kickoffUtc)),
     getStandings(),
     getPrizes(),
   ]);
 
   const teamById = new Map(allTeams.map((t) => [t.id, t]));
-  const ownerByTeam = new Map(ownerRows.map((r) => [r.teamId, firstName(r.owner)]));
+  const ownerByTeam = new Map(
+    ownerRows.map((r) => [r.teamId, firstName(r.owner)]),
+  );
   const sideQuests = buildSideQuests(prizes);
 
   const affected = new Set<string>();
@@ -265,8 +294,14 @@ export async function getDayAheadContext(opts?: { now?: Date; hoursAhead?: numbe
         group: m.groupLetter,
         kickoff: ukTime.format(m.kickoffUtc),
         knockout: m.stage !== "GROUP",
-        home: { team: h?.name ?? "TBD", owner: m.homeTeamId ? (ownerByTeam.get(m.homeTeamId) ?? null) : null },
-        away: { team: a?.name ?? "TBD", owner: m.awayTeamId ? (ownerByTeam.get(m.awayTeamId) ?? null) : null },
+        home: {
+          team: h?.name ?? "TBD",
+          owner: m.homeTeamId ? (ownerByTeam.get(m.homeTeamId) ?? null) : null,
+        },
+        away: {
+          team: a?.name ?? "TBD",
+          owner: m.awayTeamId ? (ownerByTeam.get(m.awayTeamId) ?? null) : null,
+        },
       };
     });
 
@@ -316,7 +351,11 @@ export async function generateDayAhead(ctx: DayAheadContext): Promise<string> {
     model: process.env.AI_MODEL ?? "anthropic/claude-sonnet-4.5",
     system: TANNOY_DAYAHEAD_SYSTEM,
     prompt: `Here's what's still to come today, as JSON: the upcoming fixtures (owners + UK kick-off times), the current group tables for the groups in action (the stakes), and the live side-quest leaderboards. Write Big John's "day ahead" hype — what's coming and what's on the line. These have NOT been played, so do NOT invent any scores.\n\n${JSON.stringify(
-      { fixtures: ctx.fixtures, groups: ctx.groups, sideQuests: ctx.sideQuests },
+      {
+        fixtures: ctx.fixtures,
+        groups: ctx.groups,
+        sideQuests: ctx.sideQuests,
+      },
       null,
       2,
     )}`,
@@ -326,7 +365,8 @@ export async function generateDayAhead(ctx: DayAheadContext): Promise<string> {
 
 function mockDayAhead(ctx: DayAheadContext): string {
   const lines = ctx.fixtures.map(
-    (f) => `🛫 ${f.kickoff} — ${f.home.team} (${f.home.owner ?? "?"}) v ${f.away.team} (${f.away.owner ?? "?"})`,
+    (f) =>
+      `🛫 ${f.kickoff} — ${f.home.team} (${f.home.owner ?? "?"}) v ${f.away.team} (${f.away.owner ?? "?"})`,
   );
   return `📣 *Big John* (mock — set AI_GATEWAY_API_KEY for the witty version)\nComing up today:\n${lines.join("\n")}\n\nMind the closing doors — ta-ta from Big John. ✈`;
 }
