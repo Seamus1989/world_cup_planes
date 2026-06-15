@@ -4,14 +4,24 @@ import { useState, useTransition } from "react";
 
 type PreviewResult = { text: string; matchIds: string[]; count: number };
 
-/** Generate the banter, let the admin tweak it, then post to Slack. */
+/** Generate a Big John message (recap or day-ahead), let the admin tweak it, then post to Slack. */
 export function TannoyConsole({
-  pending,
+  title,
+  blurb,
+  badge,
+  generateLabel,
+  canGenerate,
+  emptyMsg,
   live,
   preview,
   post,
 }: {
-  pending: number;
+  title: string;
+  blurb: string;
+  badge: string;
+  generateLabel: string;
+  canGenerate: boolean;
+  emptyMsg: string;
   live: boolean;
   preview: () => Promise<PreviewResult>;
   post: (text: string, matchIds: string[]) => Promise<{ ok: boolean; reason: string }>;
@@ -27,7 +37,7 @@ export function TannoyConsole({
       const r = await preview();
       setText(r.text);
       setIds(r.matchIds);
-      setStatus(r.count ? "" : "No new results to announce — enter some scores first.");
+      setStatus(r.count ? "" : emptyMsg);
     });
 
   const onPost = () =>
@@ -49,18 +59,13 @@ export function TannoyConsole({
   return (
     <section className="mt-6">
       <div className="flex items-baseline justify-between">
-        <h2 className="font-board text-sm uppercase tracking-[0.3em] text-ink">📣 Big John</h2>
-        <span className="font-mono text-[11px] uppercase tracking-[0.25em] text-ink-dim">
-          {pending} new {pending === 1 ? "result" : "results"}
-        </span>
+        <h2 className="font-board text-sm uppercase tracking-[0.3em] text-ink">{title}</h2>
+        <span className="font-mono text-[11px] uppercase tracking-[0.25em] text-ink-dim">{badge}</span>
       </div>
 
       <div className="mt-3 rounded-board border border-hairline bg-board p-5">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <p className="max-w-md text-sm text-ink-dim">
-            Enter results in the Score console, then generate a banter update for the new ones, tweak
-            it, and post it to Slack.
-          </p>
+          <p className="max-w-md text-sm text-ink-dim">{blurb}</p>
           {live ? (
             <span className="shrink-0 rounded-md bg-amber/15 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-amber">
               ● Live · this will post to Slack
@@ -76,16 +81,16 @@ export function TannoyConsole({
           <button
             type="button"
             onClick={onGenerate}
-            disabled={busy || pending === 0}
+            disabled={busy || !canGenerate}
             className={`${btn} bg-amber text-tarmac hover:brightness-110`}
           >
-            ✍ Generate
+            {generateLabel}
           </button>
           {!!text && (
             <button
               type="button"
               onClick={onPost}
-              disabled={busy || !ids.length || !live}
+              disabled={busy || !text || !live}
               className={`${btn} bg-boarding/20 text-boarding hover:bg-boarding/30`}
             >
               {live ? "Post to Slack" : "Posting off here"}

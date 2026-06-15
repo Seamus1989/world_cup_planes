@@ -2,7 +2,7 @@ import Link from "next/link";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireAdmin } from "@/lib/session";
-import { setUserStatus, runDrawAction, grantExtraSeat, previewTannoy, postTannoy } from "./actions";
+import { setUserStatus, runDrawAction, grantExtraSeat, previewTannoy, previewDayAhead, postTannoy } from "./actions";
 import { DrawForm } from "./DrawForm";
 import { TannoyConsole } from "./TannoyConsole";
 import { HOUSE_USER } from "@/lib/draw";
@@ -209,7 +209,29 @@ export default async function AdminPage() {
           </div>
         </section>
 
-        <TannoyConsole pending={unannounced} live={slackLive} preview={previewTannoy} post={postTannoy} />
+        <TannoyConsole
+          title="📣 Big John · Full-time"
+          blurb="Enter results in the Score console (or sync from ESPN), then generate a banter recap of the new ones, tweak it, and post to Slack."
+          badge={`${unannounced} new ${unannounced === 1 ? "result" : "results"}`}
+          generateLabel="✍ Generate recap"
+          canGenerate={unannounced > 0}
+          emptyMsg="No new results to announce — enter or sync some scores first."
+          live={slackLive}
+          preview={previewTannoy}
+          post={postTannoy}
+        />
+
+        <TannoyConsole
+          title="📣 Big John · The Day Ahead"
+          blurb="Hype up what's still to come today and what's on the line — fire this off mid-afternoon as a reminder of the day's fixtures."
+          badge="what's coming"
+          generateLabel="🔮 Preview the day"
+          canGenerate={true}
+          emptyMsg="No upcoming fixtures in the next 18 hours."
+          live={slackLive}
+          preview={previewDayAhead}
+          post={postTannoy}
+        />
 
         <section className="mt-8 grid gap-3 sm:grid-cols-3">
           {tiles.map((t) => (

@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireAdmin } from "@/lib/session";
 import { commitPrimaryDraw, openStandbyAndDraw, HOUSE_USER } from "@/lib/draw";
-import { getTannoyContext, generateTannoyMessage, postToSlack, markAnnounced } from "@/lib/tannoy";
+import { getTannoyContext, generateTannoyMessage, postToSlack, markAnnounced, getDayAheadContext, generateDayAhead } from "@/lib/tannoy";
 
 export async function setUserStatus(userId: string, status: "ACTIVE" | "PENDING" | "DECLINED") {
   await requireAdmin();
@@ -58,6 +58,14 @@ export async function previewTannoy() {
   const ctx = await getTannoyContext();
   const text = await generateTannoyMessage(ctx);
   return { text, matchIds: ctx.matchIds, count: ctx.games.length };
+}
+
+/** The Tannoy: draft a "day ahead" hype — what's still to come today + what's on the line. Does NOT post. */
+export async function previewDayAhead() {
+  await requireAdmin();
+  const ctx = await getDayAheadContext();
+  const text = await generateDayAhead(ctx);
+  return { text, matchIds: [] as string[], count: ctx.fixtures.length };
 }
 
 /** Post the (possibly edited) message to Slack, then mark those results announced. */

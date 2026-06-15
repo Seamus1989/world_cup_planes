@@ -93,7 +93,7 @@ export async function getPrizes(): Promise<Prizes> {
     };
   };
 
-  // Team-level quests: Air Rage (most cards) + Home Comforts (most goals as the home side)
+  // The Zinedine — most cards (yellow + red), by team
   const cardTally = new Map<string, { y: number; r: number }>();
   for (const e of evs) {
     if ((e.type !== "YELLOW" && e.type !== "RED") || !e.teamId) continue;

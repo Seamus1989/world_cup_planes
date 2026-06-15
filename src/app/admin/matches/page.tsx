@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getBoardFixtures } from "@/lib/board";
 import { requireAdmin } from "@/lib/session";
+import { SyncPanel } from "./SyncPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,8 @@ export default async function AdminMatchesPage() {
             Admin
           </Link>
         </header>
+
+        <SyncPanel />
 
         {fixtures.length === 0 ? (
           <p className="mt-16 text-center font-board text-sm uppercase tracking-[0.3em] text-ink-dim">

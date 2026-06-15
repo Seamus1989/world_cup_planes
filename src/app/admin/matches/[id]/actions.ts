@@ -14,7 +14,6 @@ export type DraftEvent = {
   team: "HOME" | "AWAY";
   type: string;
   player: string;
-  assist: string | null;
   minute: number | null;
 };
 
@@ -192,7 +191,6 @@ export async function saveMatch(
           teamId,
           playerId: await resolvePlayer(teamId, e.player),
           playerName: e.player.trim() || null,
-          assistName: e.assist?.trim() || null,
           type: e.type as typeof matchEvents.$inferInsert.type,
           minute: e.minute ?? null,
           period: periodFor(e.minute),

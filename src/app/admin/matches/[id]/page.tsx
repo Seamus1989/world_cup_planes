@@ -44,7 +44,6 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     team: e.teamId === m.homeTeamId ? "HOME" : "AWAY",
     type: e.type,
     player: e.playerName ?? "",
-    assist: e.assistName,
     minute: e.minute,
   }));
 

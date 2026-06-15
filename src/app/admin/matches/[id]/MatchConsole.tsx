@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { runExtract, searchResult, saveMatch, type DraftEvent } from "./actions";
 
-const EVENT_TYPES = ["GOAL", "PENALTY_GOAL", "OWN_GOAL", "PENALTY_MISS", "YELLOW", "RED"] as const;
+const EVENT_TYPES = ["GOAL", "PENALTY_GOAL", "OWN_GOAL"] as const;
 
 type TeamOpt = { id: string; name: string; flag: string };
 type MatchInfo = {
@@ -67,7 +67,7 @@ export function MatchConsole({
     setHome(r.homeScore?.toString() ?? "");
     setAway(r.awayScore?.toString() ?? "");
     setStatus(r.status);
-    setEvents(r.events.map((e) => ({ team: e.team, type: e.type, player: e.player, assist: e.assist, minute: e.minute })));
+    setEvents(r.events.map((e) => ({ team: e.team, type: e.type, player: e.player, minute: e.minute })));
     setHomePens(r.shootout ? String(r.shootout.home) : "");
     setAwayPens(r.shootout ? String(r.shootout.away) : "");
     setSourceUrl(r.sourceUrl);
@@ -201,23 +201,22 @@ export function MatchConsole({
         <section className="mt-4 rounded-board border border-hairline bg-board p-4">
           <div className="flex items-center justify-between">
             <h2 className="font-board text-[11px] uppercase tracking-[0.3em] text-amber">Events</h2>
-            <button onClick={() => setEvents((e) => [...e, { team: "HOME", type: "GOAL", player: "", assist: null, minute: null }])} className="font-board text-[11px] uppercase tracking-widest text-ink-dim transition hover:text-amber">
+            <button onClick={() => setEvents((e) => [...e, { team: "HOME", type: "GOAL", player: "", minute: null }])} className="font-board text-[11px] uppercase tracking-widest text-ink-dim transition hover:text-amber">
               + Add event
             </button>
           </div>
           <div className="mt-3 space-y-2">
             {events.length === 0 && <p className="font-board text-[11px] uppercase tracking-widest text-ink-dim">No events yet</p>}
             {events.map((ev, i) => (
-              <div key={i} className="grid grid-cols-[4rem_5.5rem_1fr_1fr_3.5rem_1.5rem] items-center gap-2">
+              <div key={i} className="grid grid-cols-[4rem_5.5rem_1fr_3.5rem_1.5rem] items-center gap-2">
                 <select value={ev.team} onChange={(e) => setEv(i, { team: e.target.value as "HOME" | "AWAY" })} className={inputCls}>
-                  <option value="HOME">Home</option>
-                  <option value="AWAY">Away</option>
+                  <option value="HOME">{homeName}</option>
+                  <option value="AWAY">{awayName}</option>
                 </select>
                 <select value={ev.type} onChange={(e) => setEv(i, { type: e.target.value })} className={inputCls}>
                   {EVENT_TYPES.map((t) => <option key={t} value={t}>{t.replace("_", " ").toLowerCase()}</option>)}
                 </select>
                 <input value={ev.player} onChange={(e) => setEv(i, { player: e.target.value })} placeholder="Player" className={inputCls} />
-                <input value={ev.assist ?? ""} onChange={(e) => setEv(i, { assist: e.target.value || null })} placeholder="Assist" className={inputCls} />
                 <input value={ev.minute ?? ""} onChange={(e) => setEv(i, { minute: e.target.value === "" ? null : Number(e.target.value) })} placeholder="min" inputMode="numeric" className={inputCls} />
                 <button onClick={() => setEvents((evs) => evs.filter((_, idx) => idx !== i))} className="text-ink-dim transition hover:text-cancelled">✕</button>
               </div>
