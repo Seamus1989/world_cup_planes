@@ -217,3 +217,29 @@ export async function fetchEspnMatches(opts?: { onlyFinished?: boolean }): Promi
 
   return list;
 }
+
+/**
+ * Find ONE finished ESPN match by our two team codes (order-independent) and pull its events.
+ * Light: fetches the scoreboard windows, then a single summary. For the per-match admin fetch.
+ */
+export async function fetchEspnMatchByCodes(homeCode: string, awayCode: string): Promise<EspnMatch | null> {
+  const windows = await Promise.all(DATE_WINDOWS.map((w) => getJson(`${SITE}/scoreboard?dates=${w}`)));
+  const byId = new Map<string, RawEvent>();
+  for (const d of windows) {
+    for (const e of (d.events as RawEvent[] | undefined) ?? []) byId.set(String(e.id), e);
+  }
+
+  const want = new Set([homeCode, awayCode]);
+  for (const raw of byId.values()) {
+    const m = parseScoreboardEvent(raw);
+    if (m.status !== "FINISHED") continue;
+    const codes = m.competitors.map((c) => c.code);
+    if (codes.length !== 2 || !codes.every((c) => c && want.has(c))) continue;
+    const summary = await getJson(`${SITE}/summary?event=${m.espnId}`);
+    const { events, pens } = parseSummaryEvents(summary, m.competitors);
+    m.events = events;
+    m.pens = pens;
+    return m;
+  }
+  return null;
+}

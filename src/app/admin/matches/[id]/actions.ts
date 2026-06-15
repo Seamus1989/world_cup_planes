@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db, ensureSchema, schema } from "@/db";
-import { extractMatchFromUrl, searchMatchResult, type MatchExtract } from "@/lib/extract";
+import { extractMatchFromUrl, type MatchExtract } from "@/lib/extract";
+import { fetchEspnMatchByCodes } from "@/lib/espn";
 import { resolvePlayer } from "@/lib/players";
 import { requireAdmin } from "@/lib/session";
 
@@ -14,6 +15,7 @@ export type DraftEvent = {
   team: "HOME" | "AWAY";
   type: string;
   player: string;
+  assist: string | null;
   minute: number | null;
 };
 
@@ -53,14 +55,14 @@ export async function runExtract(matchId: string, url: string): Promise<MatchExt
   }
 }
 
-/** Live web-search the result via Sonar — no URL needed, uses the fixture's teams + date. Does NOT save. */
+/** Pull this fixture's result + events straight from ESPN's structured feed (reliable). Does NOT save. */
 export async function searchResult(matchId: string): Promise<MatchExtract> {
   await requireAdmin();
   await ensureSchema();
   const home = alias(teams, "home");
   const away = alias(teams, "away");
   const [m] = await db
-    .select({ homeName: home.name, awayName: away.name, kickoff: matches.kickoffUtc })
+    .select({ homeName: home.name, awayName: away.name, homeCode: home.code, awayCode: away.code })
     .from(matches)
     .leftJoin(home, eq(home.id, matches.homeTeamId))
     .leftJoin(away, eq(away.id, matches.awayTeamId))
@@ -75,18 +77,37 @@ export async function searchResult(matchId: string): Promise<MatchExtract> {
     events: [],
     shootout: null,
     summary: "",
-    sourceUrl: "web-search",
+    sourceUrl: "espn",
   };
   if (!m) return { ...empty, error: "Match not found" };
-  if (!m.homeName || !m.awayName) {
-    return { ...empty, error: "Both teams must be set before searching (knockout slots may still be TBD)." };
+  if (!m.homeCode || !m.awayCode) {
+    return { ...empty, error: "Both teams must be set before fetching (knockout slots may still be TBD)." };
   }
   try {
-    return await searchMatchResult({
-      homeTeam: m.homeName,
-      awayTeam: m.awayName,
-      dateISO: m.kickoff ? m.kickoff.toISOString().slice(0, 10) : undefined,
-    });
+    const em = await fetchEspnMatchByCodes(m.homeCode, m.awayCode);
+    if (!em) {
+      return { ...empty, summary: "ESPN has no finished result for this fixture yet — try a URL or enter it by hand." };
+    }
+    const homeComp = em.competitors.find((c) => c.code === m.homeCode);
+    const awayComp = em.competitors.find((c) => c.code === m.awayCode);
+    if (!homeComp || !awayComp) return { ...empty, error: "Couldn't line up the teams with ESPN's data." };
+    const events: MatchExtract["events"] = em.events.map((ev) => ({
+      team: ev.teamCode === m.homeCode ? "HOME" : "AWAY",
+      type: ev.type,
+      player: ev.player ?? "",
+      assist: ev.assist ?? null,
+      minute: ev.minute,
+    }));
+    return {
+      found: true,
+      homeScore: homeComp.score,
+      awayScore: awayComp.score,
+      status: "FINISHED",
+      events,
+      shootout: em.pens ? { home: em.pens[m.homeCode] ?? 0, away: em.pens[m.awayCode] ?? 0 } : null,
+      summary: `${m.homeName} ${homeComp.score}–${awayComp.score} ${m.awayName} · from ESPN`,
+      sourceUrl: `espn:${em.espnId}`,
+    };
   } catch (e) {
     return { ...empty, error: (e as Error).message };
   }
@@ -191,6 +212,7 @@ export async function saveMatch(
           teamId,
           playerId: await resolvePlayer(teamId, e.player),
           playerName: e.player.trim() || null,
+          assistName: e.assist?.trim() || null,
           type: e.type as typeof matchEvents.$inferInsert.type,
           minute: e.minute ?? null,
           period: periodFor(e.minute),

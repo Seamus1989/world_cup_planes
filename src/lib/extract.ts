@@ -1,7 +1,7 @@
 import { generateObject, generateText } from "ai";
 import { z } from "zod";
 
-export const EVENT_TYPES = ["GOAL", "PENALTY_GOAL", "OWN_GOAL"] as const;
+export const EVENT_TYPES = ["GOAL", "PENALTY_GOAL", "OWN_GOAL", "PENALTY_MISS", "YELLOW", "RED"] as const;
 
 const ExtractSchema = z.object({
   // true ONLY if the source explicitly reports this fixture's result
@@ -12,8 +12,9 @@ const ExtractSchema = z.object({
   events: z.array(
     z.object({
       team: z.enum(["HOME", "AWAY"]),
-      type: z.enum(["GOAL", "PENALTY_GOAL", "OWN_GOAL"]),
+      type: z.enum(["GOAL", "PENALTY_GOAL", "OWN_GOAL", "PENALTY_MISS", "YELLOW", "RED"]),
       player: z.string(),
+      assist: z.string().nullable(),
       minute: z.number().int().nullable(),
     }),
   ),
@@ -51,9 +52,9 @@ function stripHtml(html: string) {
 
 /** Shared rules for turning a source into our schema. */
 const STRUCTURE_RULES = (homeTeam: string, awayTeam: string) => `- "team": HOME for ${homeTeam}, AWAY for ${awayTeam}.
-- type: GOAL (open play), PENALTY_GOAL (penalty scored during play), OWN_GOAL. We only track goals — ignore cards, bookings and missed penalties entirely.
+- type: GOAL (open play), PENALTY_GOAL (penalty scored during play), OWN_GOAL, PENALTY_MISS, YELLOW (yellow card), RED (red card or second yellow).
 - OWN_GOAL: set "team" to the side whose player scored into his OWN net (the culprit), "player" to that player. The goal counts in the OPPOSITION's scoreline.
-- "player": who scored.
+- "player": who scored or was carded. "assist": the assisting player for a goal, else null.
 - "minute": the match minute as a number, or null.
 - status: FINISHED if the match has ended, else SCHEDULED.
 - A penalty SHOOTOUT (after a draw, to decide the winner) is NOT goals: put it in "shootout" as { home, away }, do NOT add shootout kicks to events, and the scoreline stays the draw. No shootout → null.`;
@@ -169,9 +170,9 @@ function mockExtract(url: string, home: string, away: string): MatchExtract {
   const as = Math.floor(Math.random() * 4);
   const events: MatchExtract["events"] = [];
   for (let i = 0; i < hs; i++)
-    events.push({ team: "HOME", type: "GOAL", player: `${home} forward`, minute: 12 + i * 19 });
+    events.push({ team: "HOME", type: "GOAL", player: `${home} forward`, assist: i ? `${home} midfielder` : null, minute: 12 + i * 19 });
   for (let i = 0; i < as; i++)
-    events.push({ team: "AWAY", type: "GOAL", player: `${away} striker`, minute: 21 + i * 17 });
+    events.push({ team: "AWAY", type: "GOAL", player: `${away} striker`, assist: null, minute: 21 + i * 17 });
   events.sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0));
   return {
     found: true,
