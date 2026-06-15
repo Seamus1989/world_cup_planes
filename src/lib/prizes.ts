@@ -153,7 +153,7 @@ export async function getPrizes(): Promise<Prizes> {
       .sort((a, b) => a.value - b.value)
       .slice(0, 10),
     zinedine: [...cardTally.entries()]
-      .map(([id, c]) => teamRow(id, c.y + c.r, `${c.y}Y ${c.r}R`))
+      .map(([id, c]) => teamRow(id, c.y + c.r * 2, `${c.y}Y ${c.r}R`))
       .sort((a, b) => b.value - a.value)
       .slice(0, 10),
     ownGoals: [...ownGoalTally.entries()]

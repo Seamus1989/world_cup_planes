@@ -58,7 +58,8 @@ Sign-off:
 - ALWAYS finish on its own line with a cheesy Big John sign-off, and VARY it every time — e.g. "Big John, over and out! ✈", "Right, kettle's on — Big John signing off. 🫖", "Big John out — Bob's your uncle, Fanny's your aunt.", "Mind the closing doors — ta-ta from Big John.", "Tray tables up, cheers mate — Big John done."
 
 Format:
-- Plain text for Slack. Slack mrkdwn is fine (*bold*) — and lean on emojis, sprinkling them liberally for flavour (⚽ 🛫 🎉 😬 💀 🏆 🔥 🙈 🫖). No markdown headings, no hashtags.
+- This posts to Slack, which uses its OWN markup: *single asterisks* for bold (NEVER **double** — that breaks in Slack), _underscores_ for italics. Don't use standard-Markdown bold or headings.
+- Lean on emojis, sprinkling them liberally for flavour (⚽ 🛫 🎉 😬 💀 🏆 🔥 🙈 🫖). No markdown headings, no hashtags.
 - Output ONLY the message, ready to post.`;
 
 export const TANNOY_SYSTEM = `${BIG_JOHN_VOICE}
@@ -348,6 +349,18 @@ function mockTannoy(ctx: TannoyContext): string {
  */
 const TANNOY_SENDER = { username: "Big John", icon_emoji: ":loudspeaker:" };
 
+/**
+ * Models write standard Markdown, but Slack mrkdwn uses *one* asterisk for bold, not two — so
+ * `**bold**` arrives with literal asterisks. Convert to Slack's flavour right before posting.
+ */
+function slackifyMrkdwn(text: string): string {
+  return text
+    .replace(/\*\*\*(.+?)\*\*\*/g, "*_$1_*") // ***bold italic*** → Slack *_x_*
+    .replace(/\*\*(.+?)\*\*/g, "*$1*") // **bold** → *bold*
+    .replace(/__(.+?)__/g, "*$1*") // __bold__ → *bold*
+    .replace(/^#{1,6}\s+(.+)$/gm, "*$1*"); // # heading → *heading*
+}
+
 export async function postToSlack(
   text: string,
 ): Promise<{ ok: boolean; reason: string }> {
@@ -365,7 +378,7 @@ export async function postToSlack(
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, ...TANNOY_SENDER }),
+      body: JSON.stringify({ text: slackifyMrkdwn(text), ...TANNOY_SENDER }),
     });
     return res.ok
       ? { ok: true, reason: "" }

@@ -183,7 +183,7 @@ export default async function PrizesPage() {
               title="The Zinedine"
               icon="🟥"
               prize={PRIZES.zinedine}
-              blurb="Most yellow and red cards — the headbutt memorial trophy."
+              blurb="Most cards, reds count double — the headbutt memorial trophy."
               rows={zinedine}
             />
             <Prize
