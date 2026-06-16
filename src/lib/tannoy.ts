@@ -65,7 +65,7 @@ Voice & style:
 - Be SELECTIVE: pick the 3–4 juiciest things (a thrashing, a big name on the line, one cheeky side-quest jab) and leave the rest. Don't cram in every stat.
 
 Sign-off:
-- ALWAYS finish on its own line with a cheesy Big John sign-off, and VARY it every time — e.g. "Big John, over and out! ✈", "Right, kettle's on — Big John signing off. 🫖", "Big John out — Bob's your uncle, Fanny's your aunt.", "Mind the closing doors — ta-ta from Big John.", "Tray tables up, cheers mate — Big John done."
+- Do NOT write your own sign-off — the system automatically appends Big John's signature send-off. Just end on your last punchy beat.
 
 Format:
 - This posts to Slack, which uses its OWN markup: *single asterisks* for bold (NEVER **double** — that breaks in Slack), _underscores_ for italics. Don't use standard-Markdown bold or headings.
@@ -325,6 +325,79 @@ export async function getDayAheadContext(opts?: {
 /* Generate + post                                                     */
 /* ------------------------------------------------------------------ */
 
+// Big John always signs off "Tray tables up. You are, as ever, a {daft creature} — Big John out."
+const SIGNOFF_ADJECTIVES = [
+  "Flightless",
+  "Praying",
+  "Buttery",
+  "Vigorous",
+  "Peaceful",
+  "Suspicious",
+  "Velvet",
+  "Disgruntled",
+  "Majestic",
+  "Soggy",
+  "Eloquent",
+  "Reluctant",
+  "Turbo",
+  "Bewildered",
+  "Feral",
+  "Wholesome",
+  "Crispy",
+  "Brooding",
+  "Sheepish",
+  "Nocturnal",
+  "Chaotic",
+  "Dainty",
+  "Smug",
+  "Rogue",
+  "Plucky",
+  "Wistful",
+  "Greasy",
+  "Boisterous",
+  "Unbothered",
+  "Cosmic",
+];
+const SIGNOFF_ANIMALS = [
+  "Pigeon",
+  "Mantis",
+  "Spaniel",
+  "Ferret",
+  "Walrus",
+  "Otter",
+  "Heron",
+  "Badger",
+  "Gecko",
+  "Llama",
+  "Mongoose",
+  "Pelican",
+  "Stoat",
+  "Capybara",
+  "Newt",
+  "Wombat",
+  "Hedgehog",
+  "Lemur",
+  "Marmoset",
+  "Cormorant",
+  "Weasel",
+  "Tapir",
+  "Gerbil",
+  "Puffin",
+  "Meerkat",
+  "Axolotl",
+  "Quokka",
+  "Narwhal",
+];
+
+function bigJohnSignoff(): string {
+  const adj =
+    SIGNOFF_ADJECTIVES[Math.floor(Math.random() * SIGNOFF_ADJECTIVES.length)]!;
+  const animal =
+    SIGNOFF_ANIMALS[Math.floor(Math.random() * SIGNOFF_ANIMALS.length)]!;
+  const article = /^[aeiou]/i.test(adj) ? "an" : "a";
+  return `Tray tables up.\nYou are, as ever, ${article} ${adj} ${animal} — Big John out.`;
+}
+
 export async function generateTannoyMessage(
   ctx: TannoyContext,
 ): Promise<string> {
@@ -340,7 +413,7 @@ export async function generateTannoyMessage(
       2,
     )}`,
   });
-  return text.trim();
+  return `${text.trim()}\n\n${bigJohnSignoff()}`;
 }
 
 export async function generateDayAhead(ctx: DayAheadContext): Promise<string> {
@@ -360,7 +433,7 @@ export async function generateDayAhead(ctx: DayAheadContext): Promise<string> {
       2,
     )}`,
   });
-  return text.trim();
+  return `${text.trim()}\n\n${bigJohnSignoff()}`;
 }
 
 function mockDayAhead(ctx: DayAheadContext): string {
@@ -380,7 +453,7 @@ function mockTannoy(ctx: TannoyContext): string {
     const lose = h.score > a.score ? a : h;
     return `✈ ${win.team} saw off ${lose.team} ${Math.max(h.score, a.score)}–${Math.min(h.score, a.score)} — grand for ${win.owner ?? "?"}, gutter for ${lose.owner ?? "?"}.`;
   });
-  return `📣 *Big John* (mock — set AI_GATEWAY_API_KEY for the witty version)\n${lines.join("\n")}\n\nBig John, over and out! ✈`;
+  return `📣 *Big John* (mock — set AI_GATEWAY_API_KEY for the witty version)\n${lines.join("\n")}\n\n${bigJohnSignoff()}`;
 }
 
 /**
