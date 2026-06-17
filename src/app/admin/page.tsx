@@ -2,7 +2,7 @@ import Link from "next/link";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireAdmin } from "@/lib/session";
-import { setUserStatus, runDrawAction, grantExtraSeat, previewTannoy, previewDayAhead, postTannoy } from "./actions";
+import { setUserStatus, runDrawAction, grantExtraSeat, previewTannoy, previewDayAhead, postTannoy, postDayAhead } from "./actions";
 import { DrawForm } from "./DrawForm";
 import { TannoyConsole } from "./TannoyConsole";
 import { HOUSE_USER } from "@/lib/draw";
@@ -36,6 +36,7 @@ export default async function AdminPage() {
       .where(and(eq(schema.matches.status, "FINISHED"), isNull(schema.matches.announcedAt)))
   ).length;
   const slackLive = process.env.WILL_POST_TO_SLACK === "true" && !!process.env.SLACK_WEBHOOK_URL;
+  const peteLive = process.env.WILL_POST_TO_SLACK === "true" && !!process.env.SLACK_WEBHOOK_URL_PETE;
 
   const tiles = [
     { href: "/admin/matches", label: "Score console", desc: "Enter results + auto-fill from a report URL" },
@@ -222,15 +223,15 @@ export default async function AdminPage() {
         />
 
         <TannoyConsole
-          title="📣 Big John · The Day Ahead"
-          blurb="Hype up what's still to come today and what's on the line — fire this off mid-afternoon as a reminder of the day's fixtures."
+          title="💃 Ballroom Pete · The Day Ahead"
+          blurb="Pete previews what's still to come and what's on the line — posts to his OWN Slack channel. Fire this off mid-afternoon."
           badge="what's coming"
           generateLabel="🔮 Preview the day"
           canGenerate={true}
           emptyMsg="No upcoming fixtures in the next 18 hours."
-          live={slackLive}
+          live={peteLive}
           preview={previewDayAhead}
-          post={postTannoy}
+          post={postDayAhead}
         />
 
         <section className="mt-8 grid gap-3 sm:grid-cols-3">

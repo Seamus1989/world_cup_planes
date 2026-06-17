@@ -50,6 +50,19 @@ function buildSideQuests(prizes: Prizes): TannoyContext["sideQuests"] {
 /* The voice                                                           */
 /* ------------------------------------------------------------------ */
 
+// Mechanical style + Slack formatting rules shared by BOTH commentators — kept identical on purpose.
+const SHARED_STYLE = `- KEEP IT SHORT, SWEET AND SCANNABLE — a punchy one-line opener, two or three SHORT beats, then the sign-off.
+- Use LINE BREAKS: one thought per short line, with a blank line between beats. NEVER a dense wall of text — if a sentence is rambling, split it or bin it.
+- Be SELECTIVE: pick the 2–3 juiciest things and leave the rest. Don't cram in every fixture or stat.
+
+Sign-off:
+- Do NOT write your own sign-off — the system appends your signature send-off automatically. Just end on your last beat.
+
+Format:
+- This posts to Slack, which uses its OWN markup: *single asterisks* for bold (NEVER **double** — that breaks in Slack), _underscores_ for italics. Don't use standard-Markdown bold or headings.
+- Lean on emojis, sprinkling them liberally for flavour. No markdown headings, no hashtags.
+- Output ONLY the message, ready to post.`;
+
 const BIG_JOHN_VOICE = `You are Big John — the larger-than-life voice on the office Tannoy (the PA announcer) for a World Cup 2026 sweepstake called "Gate to Glory". Picture a washed-up regional airport announcer who's had two pints, fancies himself a poet, and lives for the drama — part darts commentator, part bingo caller, part bloke at the bus stop with opinions. The theme is an airport departures board: each team is a "flight", a knocked-out team's flight is "CANCELLED", and the people who own teams are the "passengers".
 
 You post short, gloriously silly updates to the office Slack.
@@ -61,16 +74,7 @@ Voice & style:
 - The PEOPLE are the story — name them (use the first name you're given) and make them the punchline.
 - A team owned by "The House" is the leftover/charity pot, not a real person — only a light touch ("the charity nicked that one, lovely jubbly"), never roast it.
 - Pile on the airport/flight puns (gate, boarding, turbulence, baggage carousel, runway, lost luggage, brace position) — be a bit shameless about it.
-- Use LINE BREAKS: one thought per short line, with a blank line between beats. NEVER a dense wall of text — if a sentence is rambling, split it or bin it.
-- Be SELECTIVE: pick the 3–4 juiciest things (a thrashing, a big name on the line, one cheeky side-quest jab) and leave the rest. Don't cram in every stat.
-
-Sign-off:
-- Do NOT write your own sign-off — the system automatically appends Big John's signature send-off. Just end on your last punchy beat.
-
-Format:
-- This posts to Slack, which uses its OWN markup: *single asterisks* for bold (NEVER **double** — that breaks in Slack), _underscores_ for italics. Don't use standard-Markdown bold or headings.
-- Lean on emojis, sprinkling them liberally for flavour (⚽ 🛫 🎉 😬 💀 🏆 🔥 🙈 🫖). No markdown headings, no hashtags.
-- Output ONLY the message, ready to post.`;
+${SHARED_STYLE}`;
 
 export const TANNOY_SYSTEM = `${BIG_JOHN_VOICE}
 
@@ -86,14 +90,29 @@ YOUR JOB RIGHT NOW — FULL-TIME RESULTS RECAP (these games have finished):
   Name the leaders by first name and weave in one or two where the result makes it funny — don't reel off all six like a spreadsheet.
 - Mention the scores and the owners; weave in the group situation only where it adds spice.`;
 
-export const TANNOY_DAYAHEAD_SYSTEM = `${BIG_JOHN_VOICE}
+const BALLROOM_PETE_VOICE = `You are Ballroom Pete — just flown in from the East End as rear-gunner to the office legend Big John, who's worked himself into the ground (nine days without a wink, bless him). Pete covers the DAY-AHEAD previews while John handles the full-time results.
 
-YOUR JOB RIGHT NOW — THE DAY AHEAD (a hype-up, NOT a recap — these games have NOT kicked off yet, so NEVER invent scores):
-- Tease the fixtures still to come today: who's flying, the matchups, and roughly when ("first up...", "then tonight under the lights...").
-- Spell out WHAT'S ON THE LINE for the passengers (owners). Use the group tables: who needs a win to qualify, who's scrapping for top spot, whose flight is one bad result from CANCELLED. Knockouts are win-or-bust — lose and you're going home.
+Who you are: a proper East End charmer with a Del Boy glint — sharp (if slightly loud) dress sense, a cigar on the go, never knowingly underdressed or underprepared. Twenty-odd years running a ballroom dance studio (taught everyone from nervous newlyweds to retired dockers their foxtrot). Devout England supporter. Firm believer that most of life's problems are sorted with a good cuppa and a bit of rhythm. Charming, relentlessly optimistic, and supremely confident about things you may or may not have actually researched.
+
+You post short, breezy day-ahead previews to the office Slack.
+
+Voice & style:
+- Broad COCKNEY, East End to the core, with Del Boy energy — warm, cheeky, a bit of wheeler-dealer patter. Drop your aitches and sling cockney rhyming slang (dog and bone = phone, plates of meat = feet, having a giraffe = laugh, ruby murray = curry, boat race = face), plus the odd "lovely jubbly", "you plonker", "cushty", "treacle", "my son", "sort it aaht", "tickety-boo", and a stray bit of mangled French (à la Del Boy — "mais oui", "bonnet de douche").
+- DANCE is your lens, NOT aviation: read the football through ballroom. A slick midfield is "a lovely little waltz", a back four "holding their frame", a tricky winger "all fancy footwork", a bottler's "lost the rhythm", a thrashing means "they got danced clean off the floor". Sprinkle foxtrot / waltz / quickstep / tango / cha-cha references.
+- Daft, proud England optimism: any England mention → they're "two decent full-backs and a bit of luck away from bringing it home". Crank it right up if England are playing.
+- Tea and cigars are your recurring comforts — reach for them.
+- The PEOPLE are the story — name the owners (the first name you're given) and make them the punchline, but keep it affectionate (you're far too charming to be cruel).
+- A team owned by "The House" is the charity/leftover pot, not a real person — light touch only, never have a pop at it.
+${SHARED_STYLE}`;
+
+export const TANNOY_DAYAHEAD_SYSTEM = `${BALLROOM_PETE_VOICE}
+
+YOUR JOB RIGHT NOW — THE DAY AHEAD (a preview, NOT a recap — these games have NOT kicked off yet, so NEVER invent scores):
+- Tease the fixtures still to come today: the matchups, who's stepping out, and roughly when ("first onto the floor...", "then tonight under the lights...").
+- Spell out WHAT'S ON THE LINE for the owners. Use the group tables: who needs a win to qualify, who's waltzing for top spot, who's one bad result from getting danced out the tournament. Knockouts are win-or-bust — lose and you're off the floor for good.
 - Stir the side-quest pots (you'll get the live top 3 of each): who's defending a booby-prize lead (Welcome Aboard most-conceded, The Zinedine most-cards, Friendly Fire own-goals) and who could leapfrog them today; plus the Golden Boot / Playmaker chasers in action.
-- 🏴 If ENGLAND are playing today, crank up the anticipation — "could it be COMING HOMEEEEE by tonight?" (save the full-caps ITS COMING HOMEEEEE for an actual win).
-- Name the passengers with skin in the game today and wind them up about it. Build the drama for what's coming — do NOT report finished scores.`;
+- 🏴 If ENGLAND are playing today, crank up the anticipation — "could it be coming home by tonight?" — and roll out the "two decent full-backs and a bit of luck" line.
+- Name the owners with skin in the game today and wind them up about it. Build the drama for what's coming — do NOT report finished scores.`;
 
 /* ------------------------------------------------------------------ */
 /* Gather the context (unannounced finished results)                   */
@@ -398,6 +417,24 @@ function bigJohnSignoff(): string {
   return `Tray tables up.\nYou are, as ever, ${article} ${adj} ${animal} — Big John out.`;
 }
 
+// Ballroom Pete's signature send-off — tea, cigar, and a different dance every time.
+const PETE_DANCES = [
+  "foxtrot",
+  "waltz",
+  "quickstep",
+  "tango",
+  "cha-cha",
+  "rumba",
+  "paso doble",
+  "samba",
+  "two-step",
+];
+
+function ballroomPeteSignoff(): string {
+  const dance = PETE_DANCES[Math.floor(Math.random() * PETE_DANCES.length)]!;
+  return `Right, kettle's on and the cigar's lit — that's your lot.\nKeep your chin up and your ${dance} tighter. Ballroom Pete, ta-ra! 💃🚬`;
+}
+
 export async function generateTannoyMessage(
   ctx: TannoyContext,
 ): Promise<string> {
@@ -423,7 +460,7 @@ export async function generateDayAhead(ctx: DayAheadContext): Promise<string> {
   const { text } = await generateText({
     model: process.env.AI_MODEL ?? "anthropic/claude-sonnet-4.5",
     system: TANNOY_DAYAHEAD_SYSTEM,
-    prompt: `Here's what's still to come today, as JSON: the upcoming fixtures (owners + UK kick-off times), the current group tables for the groups in action (the stakes), and the live side-quest leaderboards. Write Big John's "day ahead" hype — what's coming and what's on the line. These have NOT been played, so do NOT invent any scores.\n\n${JSON.stringify(
+    prompt: `Here's what's still to come today, as JSON: the upcoming fixtures (owners + UK kick-off times), the current group tables for the groups in action (the stakes), and the live side-quest leaderboards. Write Ballroom Pete's day-ahead preview — what's coming and what's on the line. These have NOT been played, so do NOT invent any scores.\n\n${JSON.stringify(
       {
         fixtures: ctx.fixtures,
         groups: ctx.groups,
@@ -433,15 +470,15 @@ export async function generateDayAhead(ctx: DayAheadContext): Promise<string> {
       2,
     )}`,
   });
-  return `${text.trim()}\n\n${bigJohnSignoff()}`;
+  return `${text.trim()}\n\n${ballroomPeteSignoff()}`;
 }
 
 function mockDayAhead(ctx: DayAheadContext): string {
   const lines = ctx.fixtures.map(
     (f) =>
-      `🛫 ${f.kickoff} — ${f.home.team} (${f.home.owner ?? "?"}) v ${f.away.team} (${f.away.owner ?? "?"})`,
+      `💃 ${f.kickoff} — ${f.home.team} (${f.home.owner ?? "?"}) v ${f.away.team} (${f.away.owner ?? "?"})`,
   );
-  return `📣 *Big John* (mock — set AI_GATEWAY_API_KEY for the witty version)\nComing up today:\n${lines.join("\n")}\n\nMind the closing doors — ta-ta from Big John. ✈`;
+  return `📣 *Ballroom Pete* (mock — set AI_GATEWAY_API_KEY for the witty version)\nOn the floor today:\n${lines.join("\n")}\n\n${ballroomPeteSignoff()}`;
 }
 
 function mockTannoy(ctx: TannoyContext): string {
@@ -476,6 +513,10 @@ function slackifyMrkdwn(text: string): string {
 
 export async function postToSlack(
   text: string,
+  opts?: {
+    webhookUrl?: string;
+    sender?: { username: string; icon_emoji: string };
+  },
 ): Promise<{ ok: boolean; reason: string }> {
   // Kill-switch: only the environment with WILL_POST_TO_SLACK=true actually posts.
   // Everywhere else (local, preview) you can still generate/preview — it just won't send.
@@ -484,14 +525,21 @@ export async function postToSlack(
       ok: false,
       reason: "Posting is off in this environment (WILL_POST_TO_SLACK ≠ true).",
     };
-  const url = process.env.SLACK_WEBHOOK_URL;
-  if (!url) return { ok: false, reason: "No SLACK_WEBHOOK_URL set." };
+  const url = opts?.webhookUrl ?? process.env.SLACK_WEBHOOK_URL;
+  if (!url)
+    return {
+      ok: false,
+      reason: "No Slack webhook URL set for this announcer.",
+    };
   if (!text.trim()) return { ok: false, reason: "Nothing to post." };
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: slackifyMrkdwn(text), ...TANNOY_SENDER }),
+      body: JSON.stringify({
+        text: slackifyMrkdwn(text),
+        ...(opts?.sender ?? TANNOY_SENDER),
+      }),
     });
     return res.ok
       ? { ok: true, reason: "" }
@@ -499,6 +547,18 @@ export async function postToSlack(
   } catch (e) {
     return { ok: false, reason: (e as Error).message };
   }
+}
+
+const PETE_SENDER = { username: "Ballroom Pete", icon_emoji: ":man_dancing:" };
+
+/** Post as Ballroom Pete to HIS own webhook (SLACK_WEBHOOK_URL_PETE) — Big John's stays untouched. */
+export async function postPete(
+  text: string,
+): Promise<{ ok: boolean; reason: string }> {
+  return postToSlack(text, {
+    webhookUrl: process.env.SLACK_WEBHOOK_URL_PETE,
+    sender: PETE_SENDER,
+  });
 }
 
 export async function markAnnounced(matchIds: string[]) {

@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireAdmin } from "@/lib/session";
 import { commitPrimaryDraw, openStandbyAndDraw, HOUSE_USER } from "@/lib/draw";
-import { getTannoyContext, generateTannoyMessage, postToSlack, markAnnounced, getDayAheadContext, generateDayAhead } from "@/lib/tannoy";
+import { getTannoyContext, generateTannoyMessage, postToSlack, postPete, markAnnounced, getDayAheadContext, generateDayAhead } from "@/lib/tannoy";
 
 export async function setUserStatus(userId: string, status: "ACTIVE" | "PENDING" | "DECLINED") {
   await requireAdmin();
@@ -60,12 +60,18 @@ export async function previewTannoy() {
   return { text, matchIds: ctx.matchIds, count: ctx.games.length };
 }
 
-/** The Tannoy: draft a "day ahead" hype — what's still to come today + what's on the line. Does NOT post. */
+/** Ballroom Pete: draft a "day ahead" preview — what's still to come today + what's on the line. Does NOT post. */
 export async function previewDayAhead() {
   await requireAdmin();
   const ctx = await getDayAheadContext();
   const text = await generateDayAhead(ctx);
   return { text, matchIds: [] as string[], count: ctx.fixtures.length };
+}
+
+/** Post Ballroom Pete's preview to HIS Slack channel (separate webhook). Announces nothing. */
+export async function postDayAhead(text: string, _matchIds: string[]) {
+  await requireAdmin();
+  return postPete(text);
 }
 
 /** Post the (possibly edited) message to Slack, then mark those results announced. */
