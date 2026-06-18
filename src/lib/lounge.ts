@@ -1,6 +1,15 @@
 import { eq } from "drizzle-orm";
 import { db, ensureSchema, schema } from "@/db";
-import { getBoardFixtures } from "./board";
+import { getBoardFixtures, type BoardMatch } from "./board";
+
+const ukDateFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }); // YYYY-MM-DD
+
+/** Today's fixtures (UK calendar day), kickoff order — already-played + still to come. */
+export async function getTodaysGames(now: Date = new Date()): Promise<BoardMatch[]> {
+  const all = await getBoardFixtures();
+  const today = ukDateFmt.format(now);
+  return all.filter((m) => ukDateFmt.format(m.kickoffUtc) === today);
+}
 
 const { seats, teams } = schema;
 

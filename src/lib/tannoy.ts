@@ -36,7 +36,7 @@ function buildSideQuests(prizes: Prizes): TannoyContext["sideQuests"] {
     "Welcome Aboard — MOST goals conceded (£10 booby prize)": top3(
       prizes.conceded,
     ),
-    "The Zinedine — MOST yellow/red cards (£10 booby prize)": top3(
+    "The Zinedine — MOST cards per game (£10 booby prize)": top3(
       prizes.zinedine,
     ),
     "Friendly Fire — MOST own goals (£10 booby prize)": top3(prizes.ownGoals),

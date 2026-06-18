@@ -20,7 +20,7 @@ const toneClass: Record<string, string> = {
 export default async function Home() {
   const user = await getCurrentUser();
   if (user) {
-    if (user.status === "ACTIVE") redirect("/fixtures");
+    if (user.status === "ACTIVE") redirect("/lounge");
     if (user.status === "PENDING") redirect("/waiting");
     if (user.status === "DECLINED") redirect("/declined");
   }
