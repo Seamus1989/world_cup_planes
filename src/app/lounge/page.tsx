@@ -28,8 +28,13 @@ const timeFmt = new Intl.DateTimeFormat("en-GB", {
 
 type Quest = { title: string; icon: string; prize: number; rows: PrizeRow[] };
 
-export default async function LoungePage() {
+export default async function LoungePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ confetti?: string }>;
+}) {
   const me = await requireActive();
+  const forceConfetti = (await searchParams).confetti === "true";
   const [{ teams, alive, total }, prizes, main, today] = await Promise.all([
     getLoungeData(me.id),
     getPrizes(),
@@ -63,7 +68,7 @@ export default async function LoungePage() {
 
   return (
     <Shell me={me}>
-      <Confetti fire={winning.length > 0} />
+      <Confetti fire={winning.length > 0 || forceConfetti} />
 
       <RotatingBanner />
 
@@ -115,36 +120,14 @@ export default async function LoungePage() {
         )}
       </section>
 
-      {/* Top prizes */}
+      {/* Side-quest leaders */}
       <section className="mt-6">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-board text-sm uppercase tracking-[0.3em] text-ink">The big money</h2>
+          <h2 className="font-board text-sm uppercase tracking-[0.3em] text-ink">Side quests · who&apos;s leading</h2>
           <Link href="/side-quests" className="font-board text-[10px] uppercase tracking-widest text-amber hover:underline">
             all prizes →
           </Link>
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {mainRows.map((r) => (
-            <div
-              key={r.label}
-              className={`flex items-center gap-3 rounded-board border bg-board px-4 py-3 ${mine(r.who?.owner) ? "border-amber ring-1 ring-amber/40" : "border-hairline"}`}
-            >
-              <span className="text-xl" aria-hidden>{r.icon}</span>
-              <div className="min-w-0 flex-1">
-                <div className="font-display text-sm font-semibold text-ink">{r.label}</div>
-                <div className="truncate font-board text-[10px] uppercase tracking-wider text-ink-dim">
-                  {r.who ? `${r.who.flag} ${r.who.owner ?? "—"}` : "to be decided"}
-                </div>
-              </div>
-              <span className="shrink-0 font-board text-lg tabular-nums text-amber">£{r.prize}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Side-quest leaders */}
-      <section className="mt-6">
-        <h2 className="font-board text-sm uppercase tracking-[0.3em] text-ink">Side quests · who&apos;s leading</h2>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {quests.map((q) => (
             <QuestCard key={q.title} q={q} mine={mine(q.rows[0]?.owner)} />
@@ -203,10 +186,7 @@ function QuestCard({ q, mine }: { q: Quest; mine: boolean }) {
           )}
         </div>
       </div>
-      <span className="shrink-0 text-right">
-        <span className="block font-board text-lg leading-none tabular-nums text-amber">£{q.prize}</span>
-        {top && <span className="font-board text-[10px] tabular-nums text-ink-dim">{top.value}</span>}
-      </span>
+      <span className="shrink-0 text-center font-board text-lg tabular-nums text-amber">£{q.prize}</span>
     </div>
   );
 }
