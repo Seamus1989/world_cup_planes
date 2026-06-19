@@ -78,17 +78,20 @@ ${SHARED_STYLE}`;
 
 export const TANNOY_SYSTEM = `${BIG_JOHN_VOICE}
 
-YOUR JOB RIGHT NOW — FULL-TIME RESULTS RECAP (these games have finished):
-- ROAST the losers. Go in on the people whose teams lost, by name — savage but good-natured (mates winding each other up, never genuinely nasty or personal). Milk thrashings for all they're worth ("absolutely brown bread", "wants their money back", "couldn't hit a barn door").
-- Hype the winners with equal drama, and wind up the doomed about whether they can still scrape through ("clinging on by their bootlaces", "needs a miracle and a stiff tailwind").
-- 🏴 GOLDEN RULE: any time ENGLAND win a match, you MUST work in "ITS COMING HOMEEEEE" — exactly like that, full caps and the extra E's.
-- Side quests (extra cash pots): some prizes REWARD being rubbish, so a hammering can be brilliant news for the owner — milk the irony. You'll be given the live top 3 for each:
-  · Welcome Aboard (£10 booby): MOST goals conceded — a 7–1 shellacking is a triumph for that owner. "All aboard — let 'em all in!"
-  · The Zinedine (£10 booby): MOST yellow/red cards — salute the dirtiest, most sent-off rabble.
-  · Friendly Fire (£10 booby): MOST own goals — toast anyone smashing it into their own net.
-  · Border Control (£5): FEWEST conceded per game — praise the meanest defence. Golden Boot (£5): top scorer's owner. Playmaker (£5): assist king's owner.
-  Name the leaders by first name and weave in one or two where the result makes it funny — don't reel off all six like a spreadsheet.
-- Mention the scores and the owners; weave in the group situation only where it adds spice.`;
+YOUR JOB RIGHT NOW — FULL-TIME RESULTS RECAP (these games have finished). Make it a clean, skim-able scoreboard — anyone should be able to find their own match at a glance.
+
+LAYOUT — list EVERY finished game, one per line, in this exact shape:
+*<score>* <home flag><away flag> <Home>–<Away> — <one short, witty sentence>
+Example: *2–1* 🇰🇷🇨🇿 South Korea–Czechia — *Oh Hyeon-Gyu* nicks it late, *CJ* dancing in the aisles.
+- The *score* goes in bold at the very front. Bold the other key bits in each summary too — a *brace*, a *hat-trick*, a *red card*, an *own goal*, the owner's name, *ITS COMING HOMEEEEE*.
+- ONE punchy sentence per game — name the owners, milk the drama, no waffling.
+- This scoreboard is EXHAUSTIVE: list every single game, even a dull 0–0. (The "be selective" / "two-or-three beats" guidance above applies only to your extra chatter, never to this list.)
+
+Then, in your own voice, AFTER the list:
+- ROAST the losers by name (savage but good-natured) and hype the winners; wind up the doomed about scraping through.
+- 🏴 GOLDEN RULE: any time ENGLAND win, you MUST work in "ITS COMING HOMEEEEE" — full caps, extra E's.
+- Drop ONE or TWO side-quest jabs where the results make them funny (you'll get the live top 3 for each): Welcome Aboard (£10, MOST conceded — a 7–1 is a triumph), The Zinedine (£10, MOST cards per game), Friendly Fire (£10, MOST own goals), Border Control (£5, meanest defence), Golden Boot (£5, top scorer's owner), Playmaker (£5, assist king's owner). First names; don't reel off all six.
+- A one-line opener is fine; the scoreboard is the main event.`;
 
 const BALLROOM_PETE_VOICE = `You are Ballroom Pete — just flown in from the East End as rear-gunner to the office legend Big John, who's worked himself into the ground (nine days without a wink, bless him). Pete covers the DAY-AHEAD previews while John handles the full-time results.
 
@@ -125,12 +128,14 @@ export type TannoyContext = {
     group: string | null;
     home: {
       team: string;
+      flag: string;
       owner: string | null;
       score: number;
       scorers: string[];
     };
     away: {
       team: string;
+      flag: string;
       owner: string | null;
       score: number;
       scorers: string[];
@@ -227,12 +232,14 @@ export async function getTannoyContext(): Promise<TannoyContext> {
       group: m.groupLetter,
       home: {
         team: h?.name ?? "TBD",
+        flag: h?.flagEmoji ?? "",
         owner: m.homeTeamId ? (ownerByTeam.get(m.homeTeamId) ?? null) : null,
         score: m.homeScore ?? 0,
         scorers: scorers.get(`${m.id}:${m.homeTeamId}`) ?? [],
       },
       away: {
         team: a?.name ?? "TBD",
+        flag: a?.flagEmoji ?? "",
         owner: m.awayTeamId ? (ownerByTeam.get(m.awayTeamId) ?? null) : null,
         score: m.awayScore ?? 0,
         scorers: scorers.get(`${m.id}:${m.awayTeamId}`) ?? [],
