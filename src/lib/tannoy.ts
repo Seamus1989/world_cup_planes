@@ -162,6 +162,7 @@ export type TannoyContext = {
       note: string | null;
     }[]
   >;
+  knockedOut: { team: string; flag: string; owner: string | null; exitStage: string | null }[];
 };
 
 export type DayAheadContext = {
@@ -175,6 +176,7 @@ export type DayAheadContext = {
   }[];
   groups: TannoyContext["groups"]; // tables for the groups in action today (the stakes)
   sideQuests: TannoyContext["sideQuests"];
+  knockedOut: TannoyContext["knockedOut"];
 };
 
 export async function getTannoyContext(): Promise<TannoyContext> {
@@ -197,7 +199,7 @@ export async function getTannoyContext(): Promise<TannoyContext> {
   const sideQuests = buildSideQuests(prizes);
 
   if (finished.length === 0)
-    return { matchIds: [], games: [], groups: {}, sideQuests };
+    return { matchIds: [], games: [], groups: {}, sideQuests, knockedOut: [] };
 
   const teamById = new Map(allTeams.map((t) => [t.id, t]));
   const ownerByTeam = new Map(
@@ -264,7 +266,11 @@ export async function getTannoyContext(): Promise<TannoyContext> {
     }));
   }
 
-  return { matchIds: ids, games, groups, sideQuests };
+  const knockedOut = allTeams
+    .filter((t) => t.eliminated)
+    .map((t) => ({ team: t.name, flag: t.flagEmoji ?? "", owner: ownerByTeam.get(t.id) ?? null, exitStage: t.exitStage }));
+
+  return { matchIds: ids, games, groups, sideQuests, knockedOut };
 }
 
 /* ------------------------------------------------------------------ */
@@ -344,7 +350,11 @@ export async function getDayAheadContext(opts?: {
     }));
   }
 
-  return { fixtures, groups, sideQuests };
+  const knockedOut = allTeams
+    .filter((t) => t.eliminated)
+    .map((t) => ({ team: t.name, flag: t.flagEmoji ?? "", owner: ownerByTeam.get(t.id) ?? null, exitStage: t.exitStage }));
+
+  return { fixtures, groups, sideQuests, knockedOut };
 }
 
 /* ------------------------------------------------------------------ */
@@ -451,8 +461,8 @@ export async function generateTannoyMessage(
   const { text } = await generateText({
     model: process.env.AI_MODEL ?? "anthropic/claude-sonnet-4.5",
     system: TANNOY_SYSTEM,
-    prompt: `Here are the latest results to announce, as JSON: the games, the current group tables for the affected groups, and the live side-quest leaderboards (top 3 each). Write the Tannoy update, weaving in a side quest or two where the results make it funny.\n\n${JSON.stringify(
-      { games: ctx.games, groups: ctx.groups, sideQuests: ctx.sideQuests },
+    prompt: `Here are the latest results to announce, as JSON: the games, the current group tables, the live side-quest leaderboards (top 3 each), and "knockedOut" — teams already eliminated (with owners + how far they got). Write the Tannoy update, weaving in a side quest or two where the results make it funny, and a cheeky "flight CANCELLED" send-off (by owner name) for anyone these results have just knocked out.\n\n${JSON.stringify(
+      { games: ctx.games, groups: ctx.groups, sideQuests: ctx.sideQuests, knockedOut: ctx.knockedOut },
       null,
       2,
     )}`,
@@ -467,11 +477,12 @@ export async function generateDayAhead(ctx: DayAheadContext): Promise<string> {
   const { text } = await generateText({
     model: process.env.AI_MODEL ?? "anthropic/claude-sonnet-4.5",
     system: TANNOY_DAYAHEAD_SYSTEM,
-    prompt: `Here's what's still to come today, as JSON: the upcoming fixtures (owners + UK kick-off times), the current group tables for the groups in action (the stakes), and the live side-quest leaderboards. Write Ballroom Pete's day-ahead preview — what's coming and what's on the line. These have NOT been played, so do NOT invent any scores.\n\n${JSON.stringify(
+    prompt: `Here's what's still to come today, as JSON: the upcoming fixtures (owners + UK kick-off times), the current group tables (the stakes), the live side-quest leaderboards, and "knockedOut" — teams already out (with owners). Write Ballroom Pete's day-ahead preview — what's coming and what's on the line. These have NOT been played, so do NOT invent any scores. Spare a cheeky thought for the cancelled flights if it fits, but keep the focus on what's still to dance for.\n\n${JSON.stringify(
       {
         fixtures: ctx.fixtures,
         groups: ctx.groups,
         sideQuests: ctx.sideQuests,
+        knockedOut: ctx.knockedOut,
       },
       null,
       2,

@@ -7,6 +7,7 @@ import { db, ensureSchema, schema } from "@/db";
 import { extractMatchFromUrl, type MatchExtract } from "@/lib/extract";
 import { fetchEspnMatchByCodes } from "@/lib/espn";
 import { resolvePlayer } from "@/lib/players";
+import { recomputeEliminations } from "@/lib/play";
 import { requireAdmin } from "@/lib/session";
 
 const { matches, matchEvents, teams } = schema;
@@ -226,9 +227,20 @@ export async function saveMatch(
     await advanceKnockout({ stage: m.stage, bracketIndex: m.bracketIndex, homeTeamId, awayTeamId }, winnerTeamId);
   }
 
-  revalidatePath("/admin/matches");
-  revalidatePath(`/admin/matches/${matchId}`);
-  revalidatePath("/fixtures");
-  revalidatePath("/knockout");
+  // Re-derive eliminations so the redlines (lounge, squads, group-stage, side-quests) keep up.
+  await recomputeEliminations();
+
+  for (const p of [
+    "/admin/matches",
+    `/admin/matches/${matchId}`,
+    "/fixtures",
+    "/knockout",
+    "/group-stage",
+    "/lounge",
+    "/squads",
+    "/side-quests",
+  ]) {
+    revalidatePath(p);
+  }
   return { ok: true as const, saved: rows.length };
 }
